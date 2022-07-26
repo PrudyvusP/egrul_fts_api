@@ -75,16 +75,17 @@ def get_organization_object(
     if name_info.get('НаимЮЛСокр') and len(name_info.get('НаимЮЛСокр')) < 4:
         short_name = None
     else:
-        short_name = name_info.get('НаимЮЛСокр', name_info['НаимЮЛПолн']).strip()
+        short_name = name_info.get('НаимЮЛСокр',
+                                   name_info['НаимЮЛПолн']).strip()
 
-    org = Organization(full_name=full_name,
-                       short_name=short_name,
-                       inn=main_info.get('ИНН', None),
-                       ogrn=main_info['ОГРН'],
-                       factual_address=factual_address,
-                       region_code=region_code
-                       )
-    return org
+    return Organization(
+        full_name=full_name,
+        short_name=short_name,
+        inn=main_info.get('ИНН', None),
+        ogrn=main_info['ОГРН'],
+        factual_address=factual_address,
+        region_code=region_code
+    )
 
 
 def get_organization_ogrn(

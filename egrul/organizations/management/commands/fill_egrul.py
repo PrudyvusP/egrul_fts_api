@@ -1,5 +1,5 @@
 import os
-import xml.etree.cElementTree as el_tree
+import xml.etree.cElementTree as ElTree
 
 from django.core.management.base import BaseCommand
 
@@ -17,7 +17,9 @@ class Command(BaseCommand):
         parser.add_argument('dir_names',
                             nargs='+',
                             type=str,
-                            help='Путь(-и) до директории, содержащие сведения из ЕГРЮЛ')
+                            help=('Путь(-и) до директории,'
+                                  ' содержащие сведения из ЕГРЮЛ')
+                            )
 
         parser.add_argument('-u',
                             '--update',
@@ -43,7 +45,7 @@ class Command(BaseCommand):
                         )
                     )
                     counter += 1
-                    tree = el_tree.parse(file_path)
+                    tree = ElTree.parse(file_path)
                     elements = tree.findall('СвЮЛ')
                     for element in elements:
                         if not element.find('СвПрекрЮЛ'):
@@ -66,7 +68,8 @@ class Command(BaseCommand):
                                 except Organization.DoesNotExist:
                                     self.stdout.write(
                                         self.style.ERROR(
-                                            f'Орг-ии с ОГРН {ogrn} не существует'
+                                            (f'Орг-ии с ОГРН {ogrn}'
+                                             f' не существует')
                                         )
                                     )
 
