@@ -128,9 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Project ignorance
-*.xml
-*.XML
+# EGRUL DATA FILES
+EGRUL*
 
 # idea
 .idea/
