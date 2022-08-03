@@ -9,6 +9,8 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'indoneSia_Xena')
 
+CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
+
 DEBUG = True
 ALLOWED_HOSTS = os.environ.get('BACKEND_HOSTS', '*').split()
 
