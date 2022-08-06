@@ -135,4 +135,3 @@ EGRUL*
 .idea/
 infra/.env
 
-!/infra/.env
