@@ -133,4 +133,5 @@ EGRUL*
 
 # idea
 .idea/
-!/infra/.env
+infra/.env
+
