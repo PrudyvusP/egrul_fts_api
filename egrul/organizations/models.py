@@ -10,7 +10,7 @@ class Organization(models.Model):
                                  null=False, blank=False)
     short_name = models.TextField('Сокращенное наименование',
                                   null=True, blank=True)
-    inn = models.CharField('ИНН', max_length=10,
+    inn = models.CharField('ИНН', max_length=12,
                            null=True, blank=True,
                            db_index=True)
     ogrn = models.CharField('ОГРН', max_length=13,

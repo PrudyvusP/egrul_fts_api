@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('full_name', models.TextField(verbose_name='Полное наименование')),
                 ('short_name', models.TextField(blank=True, null=True, verbose_name='Сокращенное наименование')),
-                ('inn', models.CharField(blank=True, db_index=True, max_length=10, null=True, verbose_name='ИНН')),
+                ('inn', models.CharField(blank=True, db_index=True, max_length=12, null=True, verbose_name='ИНН')),
                 ('ogrn', models.CharField(db_index=True, max_length=13, unique=True, verbose_name='ОГРН')),
                 ('factual_address', models.TextField(verbose_name='Адрес')),
                 ('region_code', models.CharField(max_length=3, null=True, verbose_name='Код региона')),
