@@ -42,11 +42,13 @@ class Command(BaseCommand):
             short_name_abbr = random.choice(short_names)
             full_name_abbr = forms[short_name_abbr]
             word = f'"{g.text.word().upper()}"'
+            region_code = (random.choice(region_code_choices)
+                           + random.choice(region_code_choices))
             org = Organization(
                 inn=g.russia_provider.inn(),
                 ogrn=g.russia_provider.ogrn(),
                 factual_address=address,
-                region_code=random.choice(region_code_choices) * 2,
+                region_code=region_code,
                 short_name=f'{short_name_abbr} {word}',
                 full_name=f'{full_name_abbr} {word}'
 

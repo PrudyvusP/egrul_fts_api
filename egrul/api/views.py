@@ -5,8 +5,9 @@ from rest_framework import filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .mixins import RetrieveViewSet
-from .serializers import OrganizationSerializer
+from .mixins import RetrieveListViewSet
+from .serializers import (OrganizationListSerializer,
+                          OrganizationRetrieveSerializer)
 from organizations.models import Organization
 
 
@@ -20,13 +21,18 @@ def response_with_paginator(viewset, queryset):
     return Response(viewset.get_serializer(queryset, many=True).data)
 
 
-class OrganizationViewSet(RetrieveViewSet):
-    """Retrieve-вьюсет организации и кастомными ручками."""
+class OrganizationViewSet(RetrieveListViewSet):
+    """Вью-сет для организаций."""
 
     queryset = Organization.objects.all()
-    serializer_class = OrganizationSerializer
+    serializer_class = OrganizationListSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ('=inn', '=ogrn')
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return OrganizationRetrieveSerializer
+        return OrganizationListSerializer
 
     @action(detail=False, url_path='fts-search', )
     def organization_list(self, request):
