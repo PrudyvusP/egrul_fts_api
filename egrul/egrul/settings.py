@@ -11,7 +11,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'indoneSia_Xena')
 
 CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1']
 
-DEBUG = True
+DEBUG = False
 ALLOWED_HOSTS = os.environ.get('BACKEND_HOSTS', '*').split()
 
 INSTALLED_APPS = [
