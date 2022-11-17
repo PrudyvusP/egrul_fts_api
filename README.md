@@ -38,6 +38,19 @@ docker-compose exec -T web python3 manage.py fill_test_data
 docker-compose exec -T web python3 manage.py fill_egrul <path_1_to_dir_with_xml> <path_2_to_dir_with_xml>
 ```
 
+### Переменные окружения
+Файл ```infra/.env``` должен содержать следующие переменные окружения:
+```bash
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+DB_HOST=db
+DB_PORT=5432
+SECRET_KEY=indonesia_Xena
+BACKEND_HOSTS=localhost web 127.0.0.1 testserver
+```
+
 ### Документация 
 В настоящее время сервис поддерживает три endpoint'а: 
 
@@ -95,6 +108,11 @@ GET-запрос на подобный эндпоинт вернет найде�
  - NGINX
  - Docker
 
+
+### Рекомендации
+Для локального развертывания в закрытом контуре (без использования подключения к сети "Интернет")
+возможно с помощью команд ```docker pull```, ```docker save``` и ```docker load```
+получить docker images с [Docker Hub](https://hub.docker.com/).
 
 ### TODO
 Для реализации адекватного поиска по организациям целесообразно дополнить
