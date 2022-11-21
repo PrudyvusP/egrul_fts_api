@@ -19,10 +19,9 @@ class OrganizationAdminModel(admin.ModelAdmin):
         """Переопределяет запрос организаций из БД.
         Скрывает полный список организаций."""
 
-        if not request.GET:
-            return Organization.objects.none()
-        else:
+        if request.GET:
             return super().get_queryset(request)
+        return Organization.objects.none()
 
     def get_search_results(self, request, queryset, search_term):
         """Переопределяет реализацию поиска в админке.
