@@ -35,8 +35,11 @@ docker-compose exec -T web python3 manage.py fill_test_data
 
 Для использования реальных данных из ЕГРЮЛ, предусмотрено использование следующей команды:
 ```bash
-docker-compose exec -T web python3 manage.py fill_egrul <path_1_to_dir_with_xml> <path_2_to_dir_with_xml>
+docker-compose exec -T web python3 manage.py fill_egrul egrul_data/<path_to_dir_with_xml>
 ```
+При этом ```egrul_data/<path_to_dir_with_xml>``` в текущем виде конфига
+смонтируется в ```/tmp/<path_to_dir_with_xml>```, где должны лежать XML-файлы из ЕГРЮЛ
+
 
 ### Переменные окружения
 Файл ```infra/.env``` должен содержать следующие переменные окружения:
@@ -94,7 +97,7 @@ BACKEND_HOSTS=localhost web 127.0.0.1 testserver
 3) ```/api/organizations/fts-search/?q=<запрос к полнотекстовому поиску>```  
 GET-запрос на подобный эндпоинт вернет найденные записи в БД точно в таком же формате 
 как указано в п. 1).  
-Параметр ```q``` обязятелен.
+Параметр ```q``` обязателен.
 
 ### Примечание
 
