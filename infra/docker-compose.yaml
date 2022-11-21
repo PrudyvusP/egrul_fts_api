@@ -14,6 +14,7 @@ services:
     volumes:
       - static_value:/app/static/
       - media_value:/app/media
+      - /tmp:/app/egrul_data/
     depends_on:
       - db
     env_file:
