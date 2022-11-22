@@ -39,11 +39,6 @@ class Command(BaseCommand):
             for root, dirs, files in os.walk(dir_name):
                 for file in files:
                     file_path = os.path.join(root, file)
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f'работаю с файлом {file_path}'
-                        )
-                    )
                     counter += 1
                     tree = ElTree.parse(file_path)
                     elements = tree.findall('СвЮЛ')
@@ -72,12 +67,16 @@ class Command(BaseCommand):
                                              f' не существует')
                                         )
                                     )
-
-            Organization.objects.bulk_create(organizations)
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'Действующих организаций залито: {counter_norm}.\n'
-                    f'Ликвидированных организаций {counter_likv}.\n'
-                    f'Обработано файлов {counter}.'
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'Обработано файлов: {counter}'
+                    )
                 )
+                Organization.objects.bulk_create(organizations)
+                organizations.clear()
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'Действующих организаций залито: {counter_norm}.\n'
+                f'Ликвидированных организаций {counter_likv}.'
             )
+        )
