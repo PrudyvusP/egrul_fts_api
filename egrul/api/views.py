@@ -27,7 +27,7 @@ class OrganizationViewSet(RetrieveListViewSet):
     queryset = Organization.objects.all()
     serializer_class = OrganizationListSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    search_fields = ('=inn', '=ogrn')
+    search_fields = ('=inn', '=ogrn', '=kpp')
 
     def get_serializer_class(self):
         if self.action == 'retrieve':

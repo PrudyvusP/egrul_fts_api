@@ -11,7 +11,7 @@ class OrganizationListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = ('full_name', 'short_name', 'inn', 'url')
+        fields = ('full_name', 'short_name', 'inn', 'kpp', 'url')
 
     def get_url(self, obj):
         return reverse('api:organization-detail', kwargs={'pk': obj.id})

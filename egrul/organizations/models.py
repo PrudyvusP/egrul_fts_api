@@ -14,7 +14,10 @@ class Organization(models.Model):
                            null=True, blank=True,
                            db_index=True)
     ogrn = models.CharField('ОГРН', max_length=13,
-                            unique=True, db_index=True)
+                            unique=False, db_index=True)
+    kpp = models.CharField('КПП', max_length=9,
+                           null=True, blank=True,
+                           db_index=True)
     factual_address = models.TextField('Адрес')
     full_name_search = SearchVectorField(null=True)
     region_code = models.CharField('Код региона', max_length=3,
@@ -26,6 +29,11 @@ class Organization(models.Model):
         verbose_name_plural = 'Организации'
         indexes = [GinIndex(fields=["full_name_search"],
                             name='organizations_names_gin')]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['inn', 'ogrn', 'kpp'],
+                name='unique_organization')
+        ]
 
     def __str__(self):
-        return self.full_name
+        return f'{self.full_name} ОГРН {self.ogrn}, {self.inn}/{self.kpp}'

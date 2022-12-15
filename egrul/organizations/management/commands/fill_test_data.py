@@ -47,6 +47,7 @@ class Command(BaseCommand):
             org = Organization(
                 inn=g.russia_provider.inn(),
                 ogrn=g.russia_provider.ogrn(),
+                kpp=g.russia_provider.kpp(),
                 factual_address=address,
                 region_code=region_code,
                 short_name=f'{short_name_abbr} {word}',

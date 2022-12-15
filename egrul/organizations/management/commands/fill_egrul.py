@@ -3,7 +3,7 @@ import xml.etree.cElementTree as ElTree
 
 from django.core.management.base import BaseCommand
 
-from organizations.utils import (Organization, get_organization_object,
+from organizations.utils import (Organization, get_organization_objects,
                                  get_organization_ogrn)
 
 
@@ -45,8 +45,8 @@ class Command(BaseCommand):
                     for element in elements:
                         if not element.find('СвПрекрЮЛ'):
                             counter_norm += 1
-                            org = get_organization_object(element)
-                            organizations.append(org)
+                            orgs = get_organization_objects(element)
+                            organizations.extend(orgs)
                         else:
                             counter_likv += 1
                             if update_flag:
