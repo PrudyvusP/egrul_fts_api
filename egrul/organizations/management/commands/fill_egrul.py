@@ -36,6 +36,11 @@ class Command(BaseCommand):
         update_flag = options['update']
 
         for dir_name in options['dir_names']:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'Начинаю работать с {dir_name}'
+                )
+            )
             for root, dirs, files in os.walk(dir_name):
                 for file in files:
                     file_path = os.path.join(root, file)
@@ -44,8 +49,8 @@ class Command(BaseCommand):
                     elements = tree.findall('СвЮЛ')
                     for element in elements:
                         if not element.find('СвПрекрЮЛ'):
-                            counter_norm += 1
                             orgs = get_organization_objects(element)
+                            counter_norm += len(orgs)
                             organizations.extend(orgs)
                         else:
                             counter_likv += 1
@@ -72,7 +77,7 @@ class Command(BaseCommand):
                         f'Обработано файлов: {counter}'
                     )
                 )
-                Organization.objects.bulk_create(organizations)
+                #Organization.objects.bulk_create(organizations)
                 organizations.clear()
         self.stdout.write(
             self.style.SUCCESS(

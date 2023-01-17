@@ -37,3 +37,15 @@ class Organization(models.Model):
 
     def __str__(self):
         return f'{self.full_name} ОГРН {self.ogrn}, {self.inn}/{self.kpp}'
+
+    def __eq__(self, other):
+        return (isinstance(other, Organization)
+                and self.kpp == other.kpp
+                and self.ogrn == other.ogrn
+                and self.inn == other.inn)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.ogrn) + hash(self.inn) + hash(self.kpp)

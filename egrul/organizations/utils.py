@@ -2,6 +2,7 @@ import xml.etree.ElementTree
 from typing import List, Literal
 
 from .models import Organization
+from .regions_codes import regions
 
 
 def cast_reg_pochta_to_constitute(region_name: str) -> str:
@@ -71,7 +72,8 @@ def line_formatter(strq: str, length: int) -> str:
 
 
 def get_address(
-        main_address_info: xml.etree.ElementTree.Element
+        main_address_info: xml.etree.ElementTree.Element,
+        region_code: str
 ) -> str:
     """Возвращает фактический адрес организации
      в виде строки из формата КЛАДР."""
@@ -90,11 +92,13 @@ def get_address(
                                   'ТипУлица',
                                   'НаимУлица')
 
-    region = get_geography_string(main_address_info.find('Регион'),
-                                  'НаимРегион',
-                                  'ТипРегион')
-    region = region.replace(',', '').strip()
-    region = cast_reg_pochta_to_constitute(region)
+    region = regions.get(region_code)
+    if not region:
+        region = get_geography_string(main_address_info.find('Регион'),
+                                      'НаимРегион',
+                                      'ТипРегион')
+        region = region.replace(',', '').strip()
+        region = cast_reg_pochta_to_constitute(region)
     region += ', '
     city = get_geography_string(main_address_info.find('Город'),
                                 'ТипГород',
@@ -104,22 +108,27 @@ def get_address(
                                     'ТипНаселПункт',
                                     'НаимНаселПункт')
 
-    return f'{street}{house}{building}{flat} {region}{city}{locality}{index}'
+    return f'{street}{house}{building}{flat}{region}{city}{locality}{index}'
 
 
 def get_fias_address(
-        main_address_info: xml.etree.ElementTree.Element
+        main_address_info: xml.etree.ElementTree.Element,
+        region_code: str
 ) -> str:
     """Возвращает фактический адрес организации
      в виде строки из формата КЛАДР."""
     index = main_address_info.get('Индекс', '000000')
 
-    region_name = main_address_info.find('НаимРегион').text
+    region_name = regions.get(region_code)
 
-    if region_name:
-        region_name = region_name.upper() + ', '
-        if region_name.startswith('Г.'):
-            region_name = region_name.replace('Г.', 'Г. ')
+    if not region_name:
+        region_name = main_address_info.find('НаимРегион').text
+
+        if region_name:
+            if region_name.startswith('Г.'):
+                region_name = region_name.upper().replace('Г.', 'Г. ')
+
+    region_name += ', '
 
     city = get_geography_string(main_address_info.find('НаселенПункт'),
                                 _type='Вид',
@@ -158,12 +167,12 @@ def get_organization_objects(
     main_address_info = element.find('СвАдресЮЛ/СвАдрЮЛФИАС')
     if main_address_info:
         region_code = main_address_info.find('Регион').text
-        factual_address = get_fias_address(main_address_info)
+        factual_address = get_fias_address(main_address_info, region_code)
     else:
         main_address_info = element.find('СвАдресЮЛ/АдресРФ')
         main_address_info_attrib = main_address_info.attrib
         region_code = main_address_info_attrib.get('КодРегион', '00')
-        factual_address = get_address(main_address_info)
+        factual_address = get_address(main_address_info, region_code)
         factual_address = " ".join(factual_address.split())
     if name_info.get('НаимЮЛСокр') and len(name_info.get('НаимЮЛСокр')) < 4:
         short_name = None
@@ -174,7 +183,7 @@ def get_organization_objects(
     filial_flag = element.find('СвПодразд')
 
     if filial_flag:
-
+        branches_objects = []
         branches = filial_flag.findall('СвФилиал')
 
         for branch in branches:
@@ -190,13 +199,13 @@ def get_organization_objects(
 
             if branch_address_info:
                 branch_region_code = branch_address_info.find('Регион').text
-                branch_main_address = get_fias_address(branch_address_info)
+                branch_main_address = get_fias_address(branch_address_info, branch_region_code)
             else:
                 branch_main_address = branch.find('АдрМНРФ')
 
                 if branch_main_address:
                     branch_region_code = branch_main_address.attrib.get('КодРегион', '00')
-                    branch_main_address = get_address(branch_main_address)
+                    branch_main_address = get_address(branch_main_address, region_code)
                 else:
                     branch_main_address = 'НЕ УКАЗАН'
                     branch_region_code = '00'
@@ -215,8 +224,10 @@ def get_organization_objects(
                     region_code=branch_region_code,
                     factual_address=branch_main_address
                 )
-                organizations.append(branch_org)
+                branches_objects.append(branch_org)
 
+        branches_objects = list(set(branches_objects))
+        organizations.extend(branches_objects)
     new_org = Organization(
         full_name=full_name,
         short_name=short_name,
