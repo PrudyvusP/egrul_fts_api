@@ -150,8 +150,7 @@ def get_fias_address(
                                 name='Номер',
                                 addr_format='FIAS')
 
-    factual_address = f'{street}{house}{flat}{region_name}{city}{index}'
-    return factual_address
+    return f'{street}{house}{flat}{region_name}{city}{index}'
 
 
 def get_organization_objects(
@@ -191,7 +190,8 @@ def get_organization_objects(
             full_branch_name = branch.find('СвНаим')
 
             if full_branch_name:
-                full_branch_name = f'{full_name}. {full_branch_name.attrib["НаимПолн"]}'
+                full_branch_name = (f'{full_name}.'
+                                    f' {full_branch_name.attrib["НаимПолн"]}')
             else:
                 full_branch_name = f'{full_name}. ФИЛИАЛ'
 
@@ -199,13 +199,17 @@ def get_organization_objects(
 
             if branch_address_info:
                 branch_region_code = branch_address_info.find('Регион').text
-                branch_main_address = get_fias_address(branch_address_info, branch_region_code)
+                branch_main_address = get_fias_address(branch_address_info,
+                                                       branch_region_code)
             else:
                 branch_main_address = branch.find('АдрМНРФ')
 
                 if branch_main_address:
-                    branch_region_code = branch_main_address.attrib.get('КодРегион', '00')
-                    branch_main_address = get_address(branch_main_address, region_code)
+                    branch_region_code = (branch_main_address.attrib
+                                          .get('КодРегион', '00')
+                                          )
+                    branch_main_address = get_address(branch_main_address,
+                                                      region_code)
                 else:
                     branch_main_address = 'НЕ УКАЗАН'
                     branch_region_code = '00'

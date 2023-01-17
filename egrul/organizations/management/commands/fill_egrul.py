@@ -77,7 +77,7 @@ class Command(BaseCommand):
                         f'Обработано файлов: {counter}'
                     )
                 )
-                #Organization.objects.bulk_create(organizations)
+                Organization.objects.bulk_create(organizations)
                 organizations.clear()
         self.stdout.write(
             self.style.SUCCESS(
