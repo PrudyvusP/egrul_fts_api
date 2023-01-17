@@ -11,17 +11,17 @@ def cast_reg_pochta_to_constitute(region_name: str) -> str:
     region = region_name.upper()
     if 'КЕМЕРОВСКАЯ' in region:
         return 'КЕМЕРОВСКАЯ ОБЛАСТЬ - КУЗБАСС'
-    elif 'ЧУВАШИЯ' in region:
+    if 'ЧУВАШИЯ' in region:
         return 'ЧУВАШСКАЯ РЕСПУБЛИКА - ЧУВАШИЯ'
-    elif 'ХАНТЫ' in region and 'МАНСИ' in region:
+    if 'ХАНТЫ' in region and 'МАНСИ' in region:
         return 'ХАНТЫ-МАНСИЙСКИЙ АВТОНОМНЫЙ ОКРУГ - ЮГРА'
-    elif 'ЯМАЛО' in region and 'НЕНЕЦКИЙ' in region:
+    if 'ЯМАЛО' in region and 'НЕНЕЦКИЙ' in region:
         return 'ЯМАЛО-НЕНЕЦКИЙ АВТОНОМНЫЙ ОКРУГ'
-    elif 'МОСКВА' in region:
+    if 'МОСКВА' in region:
         return 'Г. МОСКВА'
-    elif 'САНКТ' in region and 'ПЕТЕРБУРГ' in region:
+    if 'САНКТ' in region and 'ПЕТЕРБУРГ' in region:
         return 'Г. САНКТ-ПЕТЕРБУРГ'
-    elif 'СЕВАСТОПОЛЬ' in region:
+    if 'СЕВАСТОПОЛЬ' in region:
         return 'Г. СЕВАСТОПОЛЬ'
     if 'РЕСПУБЛИКА' in region:
         if region.split()[0].endswith('КАЯ'):
