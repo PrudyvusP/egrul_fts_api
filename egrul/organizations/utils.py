@@ -26,8 +26,7 @@ def cast_reg_pochta_to_constitute(region_name: str) -> str:
     if 'РЕСПУБЛИКА' in region:
         if region.split()[0].endswith('КАЯ'):
             return region
-        else:
-            return f'РЕСПУБЛИКА {region.split("РЕСПУБЛИКА")[0].rstrip()}'
+        return f'РЕСПУБЛИКА {region.split("РЕСПУБЛИКА")[0].rstrip()}'
 
     return region
 
