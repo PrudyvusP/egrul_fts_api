@@ -88,11 +88,11 @@ BACKEND_HOSTS=localhost web 127.0.0.1 testserver
 ### Развертывание в docker-контейнере
 
 Для развертывания необходимо перейти в директорию ```infra``` и запустить последовательно
-следующие команды от пользователя с правами root:
+следующие команды от пользователя с правами **root**:
 ```bash
 docker-compose up --build --d
-docker exec infra_web_1 python3 manage.py migrate
-docker exec infra_web_1 python3 manage.py collectstatic
+docker exec -it infra_web_1 python3 manage.py migrate
+docker exec -it infra_web_1 python3 manage.py collectstatic
 ```
 
 Для того, чтобы попасть в psql из-вне нужно ввести команду:
@@ -105,12 +105,12 @@ docker exec -it infra_db_1 psql -U {POSTGRES_USER}
 Для демонстрации логики работы сервиса предусмотрена команда, которая сгенерит 100 000 
 относительно похожих на реальные данные строчек в БД:
 ```bash
-docker exec -T infra_web_1 python3 manage.py fill_test_data
+docker exec -it infra_web_1 python3 manage.py fill_test_data
 ```
 
 Для использования реальных данных из ЕГРЮЛ предусмотрено использование следующей команды:
 ```bash
-docker exec -T infra_web_1 python3 manage.py fill_egrul egrul_data/<path_to_dir_with_xml>
+docker exec -it infra_web_1 python3 manage.py fill_egrul egrul_data/<path_to_dir_with_xml>
 ```
 При этом ```egrul_data/<path_to_dir_with_xml>``` в текущем виде конфига
 смонтируется в ```/tmp/<path_to_dir_with_xml>```, где должны лежать XML-файлы из ЕГРЮЛ

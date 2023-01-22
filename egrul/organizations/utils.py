@@ -172,11 +172,12 @@ def get_organization_objects(
         region_code = main_address_info_attrib.get('КодРегион', '00')
         factual_address = get_address(main_address_info, region_code)
         factual_address = " ".join(factual_address.split())
-    if name_info.get('НаимЮЛСокр') and len(name_info.get('НаимЮЛСокр')) < 4:
-        short_name = None
+
+    short_name_field = element.find('СвНаимЮЛ/СвНаимЮЛСокр')
+    if short_name_field and len(short_name_field.get('НаимСокр')) > 4:
+        short_name = short_name_field.get('НаимСокр')
     else:
-        short_name = name_info.get('НаимЮЛСокр',
-                                   name_info['НаимЮЛПолн']).strip()
+        short_name = name_info.get('НаимЮЛСокр')
 
     filial_flag = element.find('СвПодразд')
 
