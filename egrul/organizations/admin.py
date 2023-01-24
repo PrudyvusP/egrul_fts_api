@@ -11,7 +11,7 @@ class OrganizationAdminModel(admin.ModelAdmin):
     """Модель админки для организаций."""
 
     list_display = ('full_name', 'short_name', 'inn',
-                    'ogrn', 'factual_address')
+                    'ogrn', 'kpp', 'factual_address')
     readonly_fields = ('full_name_search',)
     search_fields = ('inn__exact', 'ogrn__exact')
 

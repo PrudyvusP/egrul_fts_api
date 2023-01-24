@@ -44,7 +44,7 @@ class OrganizationViewSet(RetrieveListViewSet):
             rank = SearchRank(F('full_name_search'), query)
             orgs = (Organization.objects.annotate(rank=rank)
                     .filter(full_name_search=query)
-                    .order_by('-rank', 'full_name')
+                    .order_by('-rank', 'full_name', 'inn')
                     )
             return response_with_paginator(self, orgs)
         return Response({'detail': 'Необходимо передать параметр q'})
