@@ -22,6 +22,7 @@ class Organization(models.Model):
     full_name_search = SearchVectorField(null=True)
     region_code = models.CharField('Код региона', max_length=3,
                                    null=True)
+    date_added = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['full_name']
