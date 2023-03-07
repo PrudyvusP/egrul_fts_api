@@ -22,4 +22,4 @@ class OrganizationRetrieveSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        exclude = ['full_name_search', 'id']
+        exclude = ['full_name_search', 'id', 'date_added']

@@ -1,8 +1,9 @@
 import xml.etree.ElementTree
 from typing import List, Literal
 
-from ._regions_codes import regions
 from organizations.models import Organization
+
+from ._regions_codes import regions
 
 
 def cast_reg_pochta_to_constitute(region_name: str) -> str:
