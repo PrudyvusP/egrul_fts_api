@@ -3,7 +3,7 @@ import xml.etree.cElementTree as ElTree
 
 from django.core.management.base import BaseCommand
 
-from _private import get_organization_objects
+from ._private import get_organization_objects
 from organizations.models import Organization
 
 

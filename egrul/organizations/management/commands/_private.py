@@ -108,7 +108,7 @@ def get_address(
                                     'ТипНаселПункт',
                                     'НаимНаселПункт')
 
-    return f'{street}{house}{building}{flat}{region}{city}{locality}{index}'
+    return f'{street}{house}{building}{flat}{locality}{city}{region}{index}'
 
 
 def get_fias_address(
@@ -150,7 +150,7 @@ def get_fias_address(
                                 name='Номер',
                                 addr_format='FIAS')
 
-    return f'{street}{house}{flat}{region_name}{city}{index}'
+    return f'{street}{house}{flat}{city}{region_name}{index}'
 
 
 def get_organization_objects(
@@ -173,7 +173,7 @@ def get_organization_objects(
         region_code = main_address_info_attrib.get('КодРегион', '00')
         factual_address = get_address(main_address_info, region_code)
         factual_address = " ".join(factual_address.split())
-
+    factual_address = factual_address.upper()
     short_name_field = element.find('СвНаимЮЛ/СвНаимЮЛСокр')
     if short_name_field and len(short_name_field.get('НаимСокр')) > 4:
         short_name = short_name_field.get('НаимСокр')
@@ -214,9 +214,8 @@ def get_organization_objects(
                 else:
                     branch_main_address = 'НЕ УКАЗАН'
                     branch_region_code = '00'
-
             branch_kpp = branch.find('СвУчетНОФилиал')
-
+            branch_main_address = branch_main_address.upper()
             # Если КПП у филиала отсутствует, то информация не льется в БД
 
             if branch_kpp:
