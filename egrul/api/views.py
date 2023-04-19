@@ -2,7 +2,6 @@ from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.db.models import F
 from django.db.models import Max, Min
 from django_filters.rest_framework import DjangoFilterBackend
-
 from rest_framework import filters, pagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
