@@ -58,7 +58,7 @@ class OrganizationViewSet(RetrieveListViewSet):
 
         q = request.GET.get("q")
         if q:
-            query = SearchQuery(q, config='russian')
+            query = SearchQuery(q, config='public.russian_egrul')
             rank = SearchRank(F('full_name_search'), query)
             orgs = (Organization.objects.annotate(rank=rank)
                     .filter(full_name_search=query)

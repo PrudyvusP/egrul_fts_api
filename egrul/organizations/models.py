@@ -4,7 +4,7 @@ from django.db import models
 
 
 class Organization(models.Model):
-    """Описание свойств организации."""
+    """Описание модели организации."""
 
     full_name = models.TextField('Полное наименование',
                                  null=False, blank=False)
@@ -25,11 +25,10 @@ class Organization(models.Model):
     date_added = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['full_name']
         verbose_name = 'Организация'
         verbose_name_plural = 'Организации'
         indexes = [GinIndex(fields=["full_name_search"],
-                            name='organizations_names_gin')]
+                            name='fts_gin_idx')]
         constraints = [
             models.UniqueConstraint(
                 fields=['inn', 'ogrn', 'kpp'],

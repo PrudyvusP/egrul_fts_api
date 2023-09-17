@@ -36,8 +36,8 @@ class Command(BaseCommand):
         orgs = []
         for _ in range(100000):
             address = (f'{g.address.address().upper()}, '
-                       f'{g.address.region().upper()}, '
                        f'{g.address.city().upper()}, '
+                       f'{g.address.region().upper()}, '
                        f'{g.address.zip_code()}')
             short_name_abbr = random.choice(short_names)
             full_name_abbr = forms[short_name_abbr]

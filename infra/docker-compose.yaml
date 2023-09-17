@@ -1,11 +1,19 @@
-version: '3.3'
+version: '3.4'
 services:
   db:
     image: postgres:13.0-alpine
+    restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
       - ./.env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${DB_NAME}"]
+      interval: 3s
+      timeout: 5s
+      retries: 3
+      start_period: 1s
+
   web:
     build:
       context: ../egrul
@@ -21,6 +29,7 @@ services:
       - ./.env
   nginx:
     image: nginx:1.21.3-alpine
+    restart: always
     ports:
       - "28961:80"
     volumes:
