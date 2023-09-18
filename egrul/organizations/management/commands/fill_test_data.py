@@ -28,16 +28,20 @@ class Command(BaseCommand):
 
     help = 'Заполнят БД данными для демонстрации'
 
+    def add_arguments(self, parser):
+        parser.add_argument("org_num", type=int)
+
     def handle(self, *args, **options):
         g = Generic(locale=Locale.RU)
         g.add_provider(RussiaSpecProvider)
         region_code_choices = string.digits
         short_names = list(forms.keys())
         orgs = []
-        for _ in range(100000):
+        org_num = options.get('org_num', 100000)
+        for _ in range(org_num):
             address = (f'{g.address.address().upper()}, '
-                       f'{g.address.region().upper()}, '
                        f'{g.address.city().upper()}, '
+                       f'{g.address.region().upper()}, '
                        f'{g.address.zip_code()}')
             short_name_abbr = random.choice(short_names)
             full_name_abbr = forms[short_name_abbr]
