@@ -125,81 +125,9 @@ docker exec -it infra_web_1 python3 manage.py fill_test_data <N>
 
 ### Документация
 
-В настоящее время сервис поддерживает следующие endpoint'ы:
+Документация по стандарту OPENAPI доступна по адресу http://<server_name_or_ip>:<port>/api/redoc/ (Redoc) или
+http://<server_name_or_ip>:<port>/api/swagger/
 
-`GET /api/organizations/`
-
-```json
-{
-  "count": 100000,
-  "next": "http://127.0.0.1/api/organizations/?page=3",
-  "previous": "http://127.0.0.1/api/organizations/",
-  "results": [
-    {
-      "full_name": "АКЦИОНЕРНОЕ ОБЩЕСТВО \"АВТОМОБИЛЬ\"",
-      "short_name": "АО \"АВТОМОБИЛЬ\"",
-      "inn": "550435143306",
-      "kpp": "123412345",
-      "url": "/api/organizations/129147/"
-    },
-    {
-      "full_name": "АКЦИОНЕРНОЕ ОБЩЕСТВО \"АВТОМОБИЛЬ\"",
-      "short_name": "АО \"АВТОМОБИЛЬ\"",
-      "inn": "396462764649",
-      "kpp": "567856789",
-      "url": "/api/organizations/196174/"
-    }
-  ]
-}
-```
-
-`GET /api/organizations/<id>/`
-
-```json
-{
-  "full_name": "ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО \"ЭПОХА\"",
-  "short_name": "ПАО \"ЭПОХА\"",
-  "inn": "205975495862",
-  "kpp": "123456789",
-  "ogrn": "4537933140928",
-  "factual_address": "ПЕР. ТЕСТОВЫЙ, Д.8, К.А, ВОРОНЕЖСКАЯ ОБЛАСТЬ, Г. ВОРОНЕЖ, 111111",
-  "region_code": "74"
-}
-```
-
-`GET /api/organizations/fts-search/?q=<запрос к полнотекстовому поиску>`
-
-```json
-{
-  "count": 100000,
-  "next": "http://127.0.0.1/api/organizations/?page=3",
-  "previous": "http://127.0.0.1/api/organizations/",
-  "results": [
-    {
-      "full_name": "АКЦИОНЕРНОЕ ОБЩЕСТВО \"АВТОМОБИЛЬ\"",
-      "short_name": "АО \"АВТОМОБИЛЬ\"",
-      "inn": "550435143306",
-      "kpp": "123412345",
-      "url": "/api/organizations/129147/"
-    },
-    {
-      "full_name": "АКЦИОНЕРНОЕ ОБЩЕСТВО \"АВТОМОБИЛЬ\"",
-      "short_name": "АО \"АВТОМОБИЛЬ\"",
-      "inn": "396462764649",
-      "kpp": "567856789",
-      "url": "/api/organizations/196174/"
-    }
-  ]
-}
-```
-
-`GET /api/organizations/fts-search/`
-
-```json
-{
-  "detail": "Необходимо передать параметр q"
-}
-```
 
 ### Особенности реализации полнотекстового поиска
 
