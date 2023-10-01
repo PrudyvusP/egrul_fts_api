@@ -1,9 +1,7 @@
 import os
 import random
 import string
-import time
 from abc import ABC, abstractmethod
-from functools import wraps
 from typing import Tuple, List, Dict
 
 from lxml import etree
@@ -13,20 +11,6 @@ from mimesis.locales import Locale
 
 from organizations.models import Organization
 from ._xml_egrul_utils import get_organization_objects, get_organization_ogrn
-
-
-def timeit(func):
-    @wraps(func)
-    def timeit_wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        # first item in the args, ie args[0] is self
-        print(f'Function  Took {total_time:.4f} seconds')
-        return result
-
-    return timeit_wrapper
 
 
 class OrgParser(ABC):
@@ -70,7 +54,6 @@ class XMLOrgParser(OrgParser):
         self.dir_name = dir_name
         self.update = update
 
-    @timeit
     def parse(
             self,
             *args,
@@ -99,7 +82,9 @@ class XMLOrgParser(OrgParser):
 
                 for element in elements:
                     if self.update:
-                        ogrns_orgs_to_delete.append(get_organization_ogrn(element))
+                        ogrns_orgs_to_delete.append(
+                            get_organization_ogrn(element)
+                        )
 
                     if etree.iselement(element.find('СвПрекрЮЛ')):
                         counter_liq += 1
@@ -119,7 +104,8 @@ class XMLOrgParser(OrgParser):
                 "value": counter_liq
             },
             'counter_new': {
-                "verbose_name": 'Новых или измененных старых организаций залито',
+                "verbose_name": ('Новых или измененных старых'
+                                 ' организаций залито'),
                 "value": counter_upd_new
             },
         }
@@ -164,7 +150,8 @@ class GenerateOrgParser(OrgParser):
     ) -> Tuple[List['Organization'], Dict[str, Dict[str, str]], List[str]]:
         """
         Возвращает кортеж, состоящий из:
-        [0] Список сгенерированных организаций, которые необходимо добавить в БД.
+        [0] Список сгенерированных организаций, которые необходимо
+        добавить в БД.
         [1] Словарь статистических штучек (сколько чего обработано, добавлено).
         [2] Список ОГРН организаций, подлежащих удалению.
         """
