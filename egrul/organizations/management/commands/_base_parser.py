@@ -2,9 +2,9 @@ import datetime
 import os
 import random
 import string
-import xml.etree.cElementTree as ElTree
 
 from django.core.exceptions import ObjectDoesNotExist
+from lxml import etree as ElTree
 from mimesis import Generic
 from mimesis.builtins import RussiaSpecProvider
 from mimesis.locales import Locale
