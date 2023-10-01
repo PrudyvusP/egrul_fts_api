@@ -163,7 +163,7 @@ def get_organization_objects(
     name_info = element.find('СвНаимЮЛ').attrib
     full_name = name_info['НаимЮЛПолн'].strip()
     main_address_info = element.find('СвАдресЮЛ/СвАдрЮЛФИАС')
-    if main_address_info:
+    if main_address_info is not None:
         region_code = main_address_info.find('Регион').text
         factual_address = get_fias_address(main_address_info, region_code)
     else:
@@ -174,14 +174,15 @@ def get_organization_objects(
         factual_address = " ".join(factual_address.split())
     factual_address = factual_address.upper()
     short_name_field = element.find('СвНаимЮЛ/СвНаимЮЛСокр')
-    if short_name_field and len(short_name_field.get('НаимСокр')) > 4:
+    if (short_name_field is not None
+            and len(short_name_field.get('НаимСокр')) > 4):
         short_name = short_name_field.get('НаимСокр')
     else:
         short_name = name_info.get('НаимЮЛСокр')
 
     filial_flag = element.find('СвПодразд')
 
-    if filial_flag:
+    if filial_flag is not None:
         branches_objects = []
         branches = filial_flag.findall('СвФилиал')
 
@@ -189,7 +190,7 @@ def get_organization_objects(
 
             full_branch_name = branch.find('СвНаим')
 
-            if full_branch_name:
+            if full_branch_name is not None:
                 full_branch_name = (f'{full_name}.'
                                     f' {full_branch_name.attrib["НаимПолн"]}')
             else:
@@ -197,14 +198,14 @@ def get_organization_objects(
 
             branch_address_info = branch.find('АдрМНФИАС')
 
-            if branch_address_info:
+            if branch_address_info is not None:
                 branch_region_code = branch_address_info.find('Регион').text
                 branch_main_address = get_fias_address(branch_address_info,
                                                        branch_region_code)
             else:
                 branch_main_address = branch.find('АдрМНРФ')
 
-                if branch_main_address:
+                if branch_main_address is not None:
                     branch_region_code = (branch_main_address.attrib
                                           .get('КодРегион', '00')
                                           )
@@ -217,7 +218,7 @@ def get_organization_objects(
             branch_main_address = branch_main_address.upper()
             # Если КПП у филиала отсутствует, то информация не льется в БД
 
-            if branch_kpp:
+            if branch_kpp is not None:
                 branch_kpp = branch_kpp.attrib.get('КПП')
                 branch_org = Organization(
                     full_name=full_branch_name,

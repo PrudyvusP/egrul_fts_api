@@ -1,6 +1,9 @@
 from django.core.management.base import BaseCommand
 
-from ._base_parser import UpdateOrgParser
+from ._base_deleter import OrgDeleter
+from ._base_parser import XMLOrgParser
+from ._base_saver import OrgSaver
+from ._handlers import Handler
 
 
 class Command(BaseCommand):
@@ -18,11 +21,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dir_name = options.get('dir_name')
-        parser = UpdateOrgParser(dir_name)
-        orgs, stats = parser.parse_orgs()
-        parser.save(orgs)
-
-        for value in stats.values():
-            self.stdout.write(
-                self.style.SUCCESS(f'{value["verbose_name"]}: {value["value"]}')
-            )
+        handler = Handler(
+            org_parser=XMLOrgParser(dir_name, update=True),
+            org_saver=OrgSaver(),
+            org_deleter=OrgDeleter()
+        )
+        handler.handle()

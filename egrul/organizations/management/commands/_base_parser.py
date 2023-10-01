@@ -1,78 +1,115 @@
-import datetime
 import os
 import random
 import string
+import time
+from abc import ABC, abstractmethod
+from functools import wraps
+from typing import Tuple, List, Dict
 
-from django.core.exceptions import ObjectDoesNotExist
-from lxml import etree as ElTree
+from lxml import etree
 from mimesis import Generic
 from mimesis.builtins import RussiaSpecProvider
 from mimesis.locales import Locale
 
-from organizations.models import Organization, EgrulVersion
-from ._private import get_organization_objects, get_organization_ogrn
-
-BATCH_SIZE = 10000
-
-forms = {
-    "ПАО": "ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО",
-    "ОАО": "ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО",
-    "АО": "АКЦИОНЕРНОЕ ОБЩЕСТВО",
-    "ГУП": "ГОСУДАРСТВЕННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ",
-    "БУЗ": "БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ",
-    "АКБ": "АКЦИОНЕРНЫЙ КОММЕРЧЕСКИЙ БАНК",
-    "ГК": "ГАРАЖНЫЙ КООПЕРАТИВ",
-    "ООО": "ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ",
-    "НПО": "НАУЧНО-ПРОИЗВОДСТВЕННЫЙ КОМПЛЕКС",
-    "ФКУ": "ФЕДЕРАЛЬНОЕ КАЗЕНОЕ УЧРЕЖДЕНИЕ"
-}
+from organizations.models import Organization
+from ._xml_egrul_utils import get_organization_objects, get_organization_ogrn
 
 
-class OrgParser:
+def timeit(func):
+    @wraps(func)
+    def timeit_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        # first item in the args, ie args[0] is self
+        print(f'Function  Took {total_time:.4f} seconds')
+        return result
 
-    def parse_orgs(self):
+    return timeit_wrapper
+
+
+class OrgParser(ABC):
+    """
+    Парсер сведений об организациях.
+
+    Методы
+    -------
+    parse()
+        Абстрактный метод, реализующий логику сбора данных об организациях
+    """
+
+    @abstractmethod
+    def parse(self, *args, **kwargs):
+        """
+        Определяет стратегию парсинга, которую необходимо описывать
+        при наследовании.
+        """
+
         pass
 
-    def save(self, orgs):
-        Organization.objects.bulk_create(orgs, batch_size=BATCH_SIZE)
-        try:
-            version = EgrulVersion.objects.get(pk=1)
-            version.version = datetime.date.today()
-            version.save()
-        except ObjectDoesNotExist:
-            EgrulVersion.objects.create(id=1, version=datetime.date.today())
 
+class XMLOrgParser(OrgParser):
+    """
+    Парсер сведений об организациях из XML-файлов.
 
-class FillOrgParser(OrgParser):
+    Атрибуты
+    ----------
+    dir_name : str
+        Наименование директории, в которой расположены XML-файлы
+    update : bool (по умолчанию False)
+        Флажок для управления режимом залива/обновления сведений из ЕГРЮЛ
 
-    def __init__(self, dir_name):
+    Методы
+    -------
+    parse()
+        Реализует логику сбора данных об организациях из XML-файлов
+    """
+
+    def __init__(self, dir_name: str, update: bool = False) -> None:
         self.dir_name = dir_name
+        self.update = update
 
-    def parse_orgs(self):
-        """Возвращает список действующих организаций
-        из XML-файлов ЕГРЮЛ."""
+    @timeit
+    def parse(
+            self,
+            *args,
+            **kwargs
+    ) -> Tuple[List['Organization'], Dict[str, Dict[str, str]], List[str]]:
+        """
+        Возвращает кортеж, состоящий из:
+        [0] Список действующих организаций из XML-файлов ЕГРЮЛ,
+         которые необходимо добавить в БД.
+        [1] Словарь статистических штучек (сколько чего обработано, добавлено).
+        [2] Список ОГРН организаций, подлежащих удалению.
+        """
 
-        orgs = []
-        counter = 0
-        counter_liq = 0
-        counter_new = 0
+        orgs: List['Organization'] = []
+        counter: int = 0
+        counter_liq: int = 0
+        counter_upd_new: int = 0
+        ogrns_orgs_to_delete: List[str] = []
 
         for root, dirs, files in os.walk(self.dir_name):
             for file in files:
                 file_path = os.path.join(root, file)
                 counter += 1
-                tree = ElTree.parse(file_path)
+                tree = etree.parse(file_path)
                 elements = tree.findall('СвЮЛ')
 
                 for element in elements:
-                    if element.find('СвПрекрЮЛ'):
+                    if self.update:
+                        ogrns_orgs_to_delete.append(get_organization_ogrn(element))
+
+                    if etree.iselement(element.find('СвПрекрЮЛ')):
                         counter_liq += 1
                     else:
                         orgs_from_xml = get_organization_objects(element)
-                        counter_new += len(orgs_from_xml)
-                        orgs.extend(orgs_from_xml)
+                        counter_upd_new += len(orgs_from_xml)
+                        for org_from_xml in orgs_from_xml:
+                            orgs.append(org_from_xml)
 
-        stats = {
+        stats: Dict[str, Dict[str, str]] = {
             'counter': {
                 "verbose_name": 'Обработано файлов',
                 "value": counter
@@ -82,105 +119,73 @@ class FillOrgParser(OrgParser):
                 "value": counter_liq
             },
             'counter_new': {
-                "verbose_name": 'Действующих организаций залито',
-                "value": counter_new
+                "verbose_name": 'Новых или измененных старых организаций залито',
+                "value": counter_upd_new
             },
         }
-        return orgs, stats
+        return orgs, stats, ogrns_orgs_to_delete
 
 
-class UpdateOrgParser(OrgParser):
+class GenerateOrgParser(OrgParser):
+    """
+    Создает приближенные к реальным данные об организациях.
 
-    def __init__(self, dir_name):
-        self.dir_name = dir_name
+    Атрибуты
+    ----------
+    num : int (по умолчанию 10 000)
+        Количество организаций, которые нужно создать.
 
-    def parse_orgs(self):
-        """Возвращает список действующих организаций из XML-файлов ЕГРЮЛ:
-        1) если организация действующая и не присутствует в БД, то добавляет
-        организацию и ее филиалы в список;
-        2) если организация есть в БД, но прекратила свое действие,
-        то удаляет организацию и ее филиалы из БД;
-        3) если организация есть в БД и действующая, то удаляет
-         организацию и ее филиалы из БД и добавляет ее организацию и филиалы
-         в список."""
+    Методы
+    -------
+    parse()
+        Реализует логику генерации несуществующих организаций для демонстрации
+    """
 
-        orgs = []
-        counter = 0
-        counter_new = 0
-        counter_liq = 0
-        counter_upd = 0
+    forms: Dict[str, str] = {
+        "ПАО": "ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО",
+        "ОАО": "ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО",
+        "АО": "АКЦИОНЕРНОЕ ОБЩЕСТВО",
+        "ГУП": "ГОСУДАРСТВЕННОЕ УНИТАРНОЕ ПРЕДПРИЯТИЕ",
+        "БУЗ": "БЮДЖЕТНОЕ УЧРЕЖДЕНИЕ ЗДРАВООХРАНЕНИЯ",
+        "АКБ": "АКЦИОНЕРНЫЙ КОММЕРЧЕСКИЙ БАНК",
+        "ГК": "ГАРАЖНЫЙ КООПЕРАТИВ",
+        "ООО": "ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ",
+        "НПО": "НАУЧНО-ПРОИЗВОДСТВЕННЫЙ КОМПЛЕКС",
+        "ФКУ": "ФЕДЕРАЛЬНОЕ КАЗЕНОЕ УЧРЕЖДЕНИЕ"
+    }
 
-        for root, dirs, files in os.walk(self.dir_name):
-            for file in files:
-                file_path = os.path.join(root, file)
-                counter += 1
-                tree = ElTree.parse(file_path)
-                elements = tree.findall('СвЮЛ')
-
-                for element in elements:
-                    ogrn = get_organization_ogrn(element)
-                    orgs_from_db = Organization.objects.filter(ogrn=ogrn)
-
-                    # TODO кажется, логика сбоит
-
-                    if orgs_from_db:
-
-                        if element.find('СвПрекрЮЛ'):
-                            counter_liq += len(orgs_from_db)
-                        else:
-                            orgs_from_xml = get_organization_objects(element)
-                            counter_upd += len(orgs_from_xml)
-                            orgs.extend(orgs_from_xml)
-                        # TODO есть подозрение, что это грязь (нагрузка на БД)
-                        orgs_from_db.delete()
-                    else:
-                        orgs_from_xml = get_organization_objects(element)
-                        counter_new += len(orgs_from_xml)
-                        orgs.extend(orgs_from_xml)
-
-        stats = {
-            'counter': {
-                "verbose_name": 'Обработано файлов',
-                "value": counter
-            },
-            'counter_liq': {
-                "verbose_name": 'Ликвидированных организаций пропущено',
-                "value": counter_liq
-            },
-            'counter_new': {
-                "verbose_name": 'Действующих организаций залито',
-                "value": counter_new
-            },
-            'counter_upd': {
-                "verbose_name": 'Изменений в организации внесено:',
-                "value": counter_upd
-            }
-        }
-
-        return orgs, stats
-
-
-class TestOrgParser(OrgParser):
-
-    def __init__(self, num):
+    def __init__(self, num: int = 10000):
         self.num = num
 
-    def parse_orgs(self):
+    def parse(
+            self,
+            *args,
+            **kwargs
+    ) -> Tuple[List['Organization'], Dict[str, Dict[str, str]], List[str]]:
+        """
+        Возвращает кортеж, состоящий из:
+        [0] Список сгенерированных организаций, которые необходимо добавить в БД.
+        [1] Словарь статистических штучек (сколько чего обработано, добавлено).
+        [2] Список ОГРН организаций, подлежащих удалению.
+        """
+
+        orgs: List['Organization'] = []
+
         g = Generic(locale=Locale.RU)
         g.add_provider(RussiaSpecProvider)
-        region_code_choices = string.digits
-        short_names = list(forms.keys())
-        orgs = []
+        region_code_choices: str = string.digits
+        short_names: Tuple[str] = tuple(self.forms.keys())
+
         for _ in range(self.num):
             address = (f'{g.address.address().upper()}, '
                        f'{g.address.city().upper()}, '
                        f'{g.address.region().upper()}, '
                        f'{g.address.zip_code()}')
-            short_name_abbr = random.choice(short_names)
-            full_name_abbr = forms[short_name_abbr]
-            word = f'"{g.text.word().upper()}"'
-            region_code = (random.choice(region_code_choices)
-                           + random.choice(region_code_choices))
+            short_name_abbr: str = random.choice(short_names)
+            full_name_abbr: str = self.forms[short_name_abbr]
+            word: str = f'"{g.text.word().upper()}"'
+            region_code: str = (random.choice(region_code_choices)
+                                + random.choice(region_code_choices))
             org = Organization(
                 inn=g.russia_provider.inn(),
                 ogrn=g.russia_provider.ogrn(),
@@ -195,8 +200,8 @@ class TestOrgParser(OrgParser):
 
         stats = {
             'counter_new': {
-                "verbose_name": 'Действующих организаций залито',
+                "verbose_name": 'Сгенерированных организаций залито',
                 "value": self.num
             }
         }
-        return orgs, stats
+        return orgs, stats, []

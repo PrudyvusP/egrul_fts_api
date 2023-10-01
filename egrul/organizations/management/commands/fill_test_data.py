@@ -1,24 +1,25 @@
 from django.core.management.base import BaseCommand
 
-from ._base_parser import TestOrgParser
+from ._base_parser import GenerateOrgParser
+from ._base_saver import OrgSaver
+from ._handlers import Handler
 
 
 class Command(BaseCommand):
-    """Management-команда для генерации сведений
-    об организациях для демонстрации."""
+    """Management-команда для заполнения информации
+    об организациях с целью демонстрации."""
 
     help = 'Заполнят БД сведениями для демонстрации'
 
     def add_arguments(self, parser):
-        parser.add_argument("org_num", type=int)
+        parser.add_argument('org_num',
+                            type=int,
+                            help='Количество организаций')
 
     def handle(self, *args, **options):
-        num = options.get("org_num")
-        parser = TestOrgParser(num)
-        orgs, stats = parser.parse_orgs()
-        parser.save(orgs)
-
-        for value in stats.values():
-            self.stdout.write(
-                self.style.SUCCESS(f'{value["verbose_name"]}: {value["value"]}')
-            )
+        num = options.get('org_num')
+        handler = Handler(
+            org_parser=GenerateOrgParser(num),
+            org_saver=OrgSaver()
+        )
+        handler.handle()
