@@ -100,8 +100,8 @@ docker exec -it infra_web_1 python3 manage.py fill_test_data <N>
 
 ### Документация
 
-Документация по стандарту OPENAPI доступна в виде [Redoc](http://localhost:28961/api/redoc/)
-или [Swagger](http://localhost:28961/api/swagger/).
+Документация по стандарту OPENAPI доступна в виде [Redoc](http://localhost:28961/redoc/)
+или [Swagger](http://localhost:28961/swagger/).
 
 ### Особенности реализации полнотекстового поиска
 
