@@ -1,9 +1,16 @@
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
-from django.db import models
+from django.db import connection, models
 
 
 class Organization(models.Model):
+
+    @classmethod
+    def truncate_ri(cls):
+        """TRUNCATE table_name RESTART IDENTITY."""
+        with connection.cursor() as cur:
+            cur.execute(f'TRUNCATE {cls._meta.db_table} RESTART IDENTITY')
+
     """Описание модели организации."""
     id = models.BigAutoField(primary_key=True,
                              help_text='Идентификатор организации в БД')
@@ -43,11 +50,6 @@ class Organization(models.Model):
         verbose_name_plural = 'Организации'
         indexes = [GinIndex(fields=['full_name_search'],
                             name='fts_gin_idx')]
-        constraints = [
-            models.UniqueConstraint(
-                fields=['inn', 'ogrn', 'kpp'],
-                name='unique_organization')
-        ]
 
     def __str__(self):
         return f'{self.full_name} ОГРН {self.ogrn}, {self.inn}/{self.kpp}'
