@@ -31,9 +31,9 @@ class Handler:
 
     def __init__(
             self,
-            org_parser: Type['OrgParser'],
-            org_saver: Type['OrgSaver'],
-            org_deleter: Type['OrgDeleter'] = None) -> None:
+            org_parser: OrgParser,
+            org_saver: OrgSaver,
+            org_deleter: OrgDeleter = None) -> None:
         self.parser = org_parser
         self.saver = org_saver
         self.deleter = org_deleter

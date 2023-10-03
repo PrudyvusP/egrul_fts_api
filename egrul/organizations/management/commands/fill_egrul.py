@@ -23,7 +23,7 @@ class Command(BaseCommand):
         Organization.truncate_ri()
         dir_name = options.get('dir_name')
         handler = Handler(
-            org_parser=XMLOrgParser(dir_name, update=False),
+            org_parser=XMLOrgParser(dir_name, is_update=False),
             org_saver=OrgSaver()
         )
         handler.handle()

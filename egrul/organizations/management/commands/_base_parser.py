@@ -1,16 +1,15 @@
-import os
 import random
 import string
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Tuple, List, Dict
 
-from lxml import etree
 from mimesis import Generic
 from mimesis.builtins import RussiaSpecProvider
 from mimesis.locales import Locale
 
 from organizations.models import Organization
-from ._xml_egrul_utils import get_organization_objects, get_organization_ogrn
+from ._xml_egrul_utils import get_organizations_from_xml
 
 
 class OrgParser(ABC):
@@ -50,9 +49,9 @@ class XMLOrgParser(OrgParser):
         Реализует логику сбора данных об организациях из XML-файлов
     """
 
-    def __init__(self, dir_name: str, update: bool = False) -> None:
+    def __init__(self, dir_name: str, is_update: bool = False) -> None:
         self.dir_name = dir_name
-        self.update = update
+        self.is_update = is_update
 
     def parse(
             self,
@@ -69,43 +68,30 @@ class XMLOrgParser(OrgParser):
 
         orgs: List['Organization'] = []
         counter: int = 0
-        counter_liq: int = 0
         counter_upd_new: int = 0
         ogrns_orgs_to_delete: List[str] = []
 
-        for root, dirs, files in os.walk(self.dir_name):
-            for file in files:
-                file_path = os.path.join(root, file)
-                counter += 1
-                tree = etree.parse(file_path)
-                elements = tree.findall('СвЮЛ')
+        for xml_path in Path(self.dir_name).glob('*.XML'):
+            counter += 1
+            (orgs_from_xml,
+             ogrns_to_del_from_xml) = get_organizations_from_xml(
+                xml_path,
+                is_update=self.is_update
+            )
+            for org_from_xml in set(orgs_from_xml):
+                orgs.append(org_from_xml)
+                counter_upd_new += 1
 
-                for element in elements:
-                    if self.update:
-                        ogrns_orgs_to_delete.append(
-                            get_organization_ogrn(element)
-                        )
-
-                    if etree.iselement(element.find('СвПрекрЮЛ')):
-                        counter_liq += 1
-                    else:
-                        orgs_from_xml = get_organization_objects(element)
-                        counter_upd_new += len(orgs_from_xml)
-                        for org_from_xml in orgs_from_xml:
-                            orgs.append(org_from_xml)
+            for ogrn_org_to_del_from_xml in ogrns_to_del_from_xml:
+                ogrns_orgs_to_delete.append(ogrn_org_to_del_from_xml)
 
         stats: Dict[str, Dict[str, str]] = {
             'counter': {
                 "verbose_name": 'Обработано файлов',
                 "value": counter
             },
-            'counter_liq': {
-                "verbose_name": 'Ликвидированных организаций пропущено',
-                "value": counter_liq
-            },
             'counter_new': {
-                "verbose_name": ('Новых или измененных старых'
-                                 ' организаций залито'),
+                "verbose_name": 'Новых или измененных организаций залито',
                 "value": counter_upd_new
             },
         }
