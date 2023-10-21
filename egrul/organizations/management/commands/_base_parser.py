@@ -1,15 +1,15 @@
 import random
 import string
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Tuple, List, Dict
+from typing import Dict, Iterable, List, Tuple
 
+from lxml import etree
 from mimesis import Generic
 from mimesis.builtins import RussiaSpecProvider
 from mimesis.locales import Locale
 
 from organizations.models import Organization
-from ._xml_egrul_utils import get_organizations_from_xml
+from ._xml_egrul_utils import EgrulMainOrg
 
 
 class OrgParser(ABC):
@@ -40,7 +40,7 @@ class XMLOrgParser(OrgParser):
     ----------
     dir_name : str
         Наименование директории, в которой расположены XML-файлы
-    update : bool (по умолчанию False)
+    is_update : bool (по умолчанию False)
         Флажок для управления режимом залива/обновления сведений из ЕГРЮЛ
 
     Методы
@@ -49,8 +49,8 @@ class XMLOrgParser(OrgParser):
         Реализует логику сбора данных об организациях из XML-файлов
     """
 
-    def __init__(self, dir_name: str, is_update: bool = False) -> None:
-        self.dir_name = dir_name
+    def __init__(self, xml_files: Iterable, is_update: bool = False) -> None:
+        self.xml_files = xml_files
         self.is_update = is_update
 
     def parse(
@@ -71,19 +71,21 @@ class XMLOrgParser(OrgParser):
         counter_upd_new: int = 0
         ogrns_orgs_to_delete: List[str] = []
 
-        for xml_path in Path(self.dir_name).glob('*.XML'):
+        for xml_path in self.xml_files:
             counter += 1
-            (orgs_from_xml,
-             ogrns_to_del_from_xml) = get_organizations_from_xml(
-                xml_path,
-                is_update=self.is_update
-            )
-            for org_from_xml in set(orgs_from_xml):
-                orgs.append(org_from_xml)
-                counter_upd_new += 1
+            tree = etree.parse(xml_path)
+            elements = tree.findall('СвЮЛ')
+            for element in elements:
+                egrul_org = EgrulMainOrg(element=element)
+                if not egrul_org.is_liquidated:
+                    parsed_orgs = egrul_org.get_props()
 
-            for ogrn_org_to_del_from_xml in ogrns_to_del_from_xml:
-                ogrns_orgs_to_delete.append(ogrn_org_to_del_from_xml)
+                    for parsed_org in parsed_orgs:
+                        orgs.append(Organization(**parsed_org))
+                        counter_upd_new += 1
+
+                if self.is_update:
+                    ogrns_orgs_to_delete.append(egrul_org.ogrn)
 
         stats: Dict[str, Dict[str, str]] = {
             'counter': {
@@ -150,10 +152,10 @@ class GenerateOrgParser(OrgParser):
         short_names: Tuple[str] = tuple(self.forms.keys())
 
         for _ in range(self.num):
-            address = (f'{g.address.address().upper()}, '
-                       f'{g.address.city().upper()}, '
-                       f'{g.address.region().upper()}, '
-                       f'{g.address.zip_code()}')
+            address = (f'{g.address.address()}, '
+                       f'{g.address.city()}, '
+                       f'{g.address.region()}, '
+                       f'{g.address.zip_code()}').upper()
             short_name_abbr: str = random.choice(short_names)
             full_name_abbr: str = self.forms[short_name_abbr]
             word: str = f'"{g.text.word().upper()}"'

@@ -1,8 +1,7 @@
-from typing import Literal, Tuple, Dict
+from typing import Dict, List, Optional, Tuple
 
 from lxml import etree
 
-from organizations.models import Organization
 from ._regions_codes import regions
 
 
@@ -14,34 +13,6 @@ def line_formatter(strq: str, length: int) -> str:
     if strq:
         strq += ', '
     return strq
-
-
-def get_geography_string(
-        data_info: etree.Element,
-        _type: str,
-        name: str,
-        addr_format: Literal['KLADR', 'FIAS'] = 'KLADR') -> str:
-    """
-    Выбирает расположение ключевых слов адреса в строке по типу:
-    Г.МОСКВА - для городов федерального значения, {Республика} Татарстан
-     - для всего остального пустая строка - если поле не заполнено.
-    """
-
-    if etree.iselement(data_info):
-        data_info = data_info.attrib
-
-        data_type = data_info.get(_type, '')
-        data_name = data_info.get(name, '')
-
-        # В структуре ФИАС иногда встречаются лишние точки.
-        if addr_format == 'FIAS':
-            data_type = data_type.replace('.', '')
-            data_type = data_type + '.'
-
-        if data_name == 'ГОРОД':
-            return f'Г. {data_type}, '
-        return f'{data_type} {data_name}, '
-    return ''
 
 
 class Address:
@@ -78,48 +49,78 @@ class Address:
 
         return region
 
+    def get_geography_string(
+            self,
+            data_info: etree.Element,
+            _type: str,
+            name: str,
+            addr_format: str = 'KLADR') -> str:
+        """
+        Выбирает расположение ключевых слов адреса в строке по типу:
+        Г.МОСКВА - для городов федерального значения, {Республика} Татарстан
+         - для всего остального пустая строка - если поле не заполнено.
+        """
+
+        if etree.iselement(data_info):
+            data_info = data_info.attrib
+
+            data_type = data_info.get(_type, '')
+            data_name = data_info.get(name, '')
+
+            # В структуре ФИАС иногда встречаются лишние точки.
+            if addr_format == 'FIAS':
+                data_type = data_type.replace('.', '')
+                data_type = data_type + '.'
+
+            if data_name == 'ГОРОД':
+                return f'Г. {data_type}, '
+            return f'{data_type} {data_name}, '
+        return ''
+
 
 class FIASAddress(Address):
+    @property
+    def type(self):
+        return "FIAS"
+
     def get_address(self) -> str:
         """Возвращает фактический адрес организации
          в виде строки из формата ФИАС."""
         index = self.element.get('Индекс', '000000')
 
         region_name = regions.get(self.region_code)
-
         if not region_name:
             region_name = self.element.find('НаимРегион').text
 
             if region_name:
                 if region_name.startswith('Г.'):
                     region_name = region_name.upper().replace('Г.', 'Г. ')
-
         region_name += ', '
-
-        city = get_geography_string(self.element.find('НаселенПункт'),
-                                    _type='Вид',
-                                    name='Наим',
-                                    addr_format='FIAS')
-
-        street = get_geography_string(self.element.find('ЭлУлДорСети'),
-                                      _type='Тип',
-                                      name='Наим',
-                                      addr_format='FIAS')
-
-        house = get_geography_string(self.element.find('Здание'),
-                                     _type='Тип',
-                                     name='Номер',
-                                     addr_format='FIAS')
-
-        flat = get_geography_string(self.element.find('ПомещЗдания'),
-                                    _type='Тип',
-                                    name='Номер',
-                                    addr_format='FIAS')
-
+        city = self.get_geography_string(self.element.find('НаселенПункт'),
+                                         _type='Вид',
+                                         name='Наим',
+                                         addr_format=self.type)
+        street = self.get_geography_string(self.element.find('ЭлУлДорСети'),
+                                           _type='Тип',
+                                           name='Наим',
+                                           addr_format=self.type)
+        house = self.get_geography_string(self.element.find('Здание'),
+                                          _type='Тип',
+                                          name='Номер',
+                                          addr_format=self.type)
+        flat = self.get_geography_string(self.element.find('ПомещЗдания'),
+                                         _type='Тип',
+                                         name='Номер',
+                                         addr_format=self.type)
         return f'{street}{house}{flat}{city}{region_name}{index}'.upper()
 
 
 class KLADRAddress(Address):
+
+    @property
+    def type(self):
+        return "KLADR"
+
     def get_address(self):
         """Возвращает фактический адрес организации
          в виде строки из формата КЛАДР."""
@@ -134,29 +135,25 @@ class KLADRAddress(Address):
         flat = main_address_info_attrib.get('Кварт', '')
         flat = line_formatter(flat, 2)
 
-        street = get_geography_string(self.element.find('Улица'),
-                                      'ТипУлица',
-                                      'НаимУлица')
-
+        street = self.get_geography_string(self.element.find('Улица'),
+                                           'ТипУлица',
+                                           'НаимУлица')
         region = regions.get(self.region_code)
         if not region:
-            region = get_geography_string(self.element.find('Регион'),
-                                          'НаимРегион',
-                                          'ТипРегион')
+            region = self.get_geography_string(self.element.find('Регион'),
+                                               'НаимРегион',
+                                               'ТипРегион')
             region = region.replace(',', '').strip()
             region = self.cast_reg_pochta_to_constitute(region)
         region += ', '
-        city = get_geography_string(self.element.find('Город'),
-                                    'ТипГород',
-                                    'НаимГород')
-
-        locality = get_geography_string(self.element.find('НаселПункт'),
-                                        'ТипНаселПункт',
-                                        'НаимНаселПункт')
-
+        city = self.get_geography_string(self.element.find('Город'),
+                                         'ТипГород',
+                                         'НаимГород')
+        locality = self.get_geography_string(self.element.find('НаселПункт'),
+                                             'ТипНаселПункт',
+                                             'НаимНаселПункт')
         return (f'{street}{house}{building}{flat}'
-                f'{locality}{city}{region}{index}'.upper()
-                )
+                f'{locality}{city}{region}{index}'.upper())
 
 
 class EgrulUnitOrg:
@@ -201,9 +198,9 @@ class EgrulUnitOrg:
 
     def get_kpp(self) -> str:
         """Возвращает КПП."""
-        branch_kpp = self.unit_element.find(self.kpp_root_tag)
-        if etree.iselement(branch_kpp):
-            return branch_kpp.attrib.get(self.kpp_tag)
+        kpp = self.unit_element.find(self.kpp_root_tag)
+        if etree.iselement(kpp):
+            return kpp.attrib.get(self.kpp_tag)
 
     def get_address_and_region_code(self) -> Tuple[str, str]:
         """Возвращает фактический адрес и код региона."""
@@ -212,27 +209,24 @@ class EgrulUnitOrg:
 
         if etree.iselement(address_info):
             region_code = address_info.find('Регион').text
-            fias = FIASAddress(element=address_info, region_code=region_code)
+            fias = FIASAddress(element=address_info,
+                               region_code=region_code)
             return fias.get_address(), region_code
-
         address_info = self.unit_element.find(self.address_kladr_tag)
         if etree.iselement(address_info):
             region_code = (address_info.attrib
                            .get('КодРегион', '00')
                            )
-            kladr = KLADRAddress(element=address_info, region_code=region_code)
+            kladr = KLADRAddress(element=address_info,
+                                 region_code=region_code)
             return kladr.get_address(), region_code
         return 'НЕ УКАЗАН', '00'
 
-    def get_props(self) -> Dict[str, str]:
-        """
-        full_name, ogrn, inn, kpp, factual_address, region_code.
-        """
+    def get_props(self) -> Optional[Dict[str, str]]:
+        """Возвращает словарь с реквизитами филиала."""
         kpp = self.get_kpp()
-        # Если КПП у филиала отсутствует, то информация не льется в БД
         if not kpp:
-            return {}
-
+            return None
         factual_address, region_code = self.get_address_and_region_code()
         return {
             'full_name': self.get_full_name(),
@@ -246,10 +240,12 @@ class EgrulUnitOrg:
 
 
 class EgrulMainOrg:
-    def __init__(self, element: etree.Element,
+    def __init__(self,
+                 element: etree.Element,
                  ogrn_tag: str = 'ОГРН',
                  inn_tag: str = 'ИНН',
                  kpp_tag: str = 'КПП',
+                 liquidated_tag: str = 'СвПрекрЮЛ',
                  name_root_tag: str = 'СвНаимЮЛ',
                  full_name_tag: str = 'НаимЮЛПолн',
                  units_root_tag: str = 'СвПодразд',
@@ -259,10 +255,16 @@ class EgrulMainOrg:
         self.ogrn_tag = ogrn_tag
         self.inn_tag = inn_tag
         self.kpp_tag = kpp_tag
+        self.liquidated_tag = liquidated_tag
         self.name_root_tag = name_root_tag
         self.full_name_tag = full_name_tag
         self.units_root_tag = units_root_tag
         self.unit_tag = unit_tag
+
+    @property
+    def is_liquidated(self) -> bool:
+        """Возвращает True, если организация ликвидирована."""
+        return etree.iselement(self.element.find(self.liquidated_tag))
 
     @property
     def ogrn(self) -> str:
@@ -279,8 +281,9 @@ class EgrulMainOrg:
         """Возвращает КПП."""
         return self.element.attrib.get(self.kpp_tag)
 
-    def get_full_name(self) -> str:
-        """Возвращает полное наименование"""
+    @property
+    def full_name(self) -> str:
+        """Возвращает полное наименование."""
         name_info = self.element.find(self.name_root_tag).attrib
         return name_info[self.full_name_tag].strip()
 
@@ -297,36 +300,54 @@ class EgrulMainOrg:
     ) -> Tuple[str, str]:
         """Возвращает фактический адрес и код региона."""
         main_address_info = self.element.find('СвАдресЮЛ/СвАдрЮЛФИАС')
-
         if etree.iselement(main_address_info):
             region_code = main_address_info.find('Регион').text
-            fias = FIASAddress(element=main_address_info, region_code=region_code)
+            fias = FIASAddress(element=main_address_info,
+                               region_code=region_code)
             return fias.get_address(), region_code
         main_address_info = self.element.find('СвАдресЮЛ/АдресРФ')
         main_address_info_attrib = main_address_info.attrib
         region_code = main_address_info_attrib.get('КодРегион', '00')
-        kladr = KLADRAddress(element=main_address_info, region_code=region_code)
+        kladr = KLADRAddress(element=main_address_info,
+                             region_code=region_code)
         address = kladr.get_address()
         return " ".join(address.split()), region_code
 
-    def has_branches(self) -> bool:
-        """Возвращает True, если есть тег с филиалами."""
+    def has_units(self) -> bool:
+        """Возвращает True, если в XML встречается тег с филиалами."""
         return etree.iselement(self.element.find(self.units_root_tag))
 
-    def get_props(self):
+    def get_units(self) -> List[Dict[str, str]]:
+        """Возвращает список словарей реквизитов филиалов."""
+        units = []
+
+        if self.has_units():
+            units_from_xml = (self.element
+                              .find(self.units_root_tag)
+                              .findall(self.unit_tag)
+                              )
+            for unit_from_xml in units_from_xml:
+                new_unit = EgrulUnitOrg(
+                    unit_element=unit_from_xml,
+                    main_full_name=self.full_name,
+                    inn=self.inn, ogrn=self.ogrn)
+                new_unit = new_unit.get_props()
+                if new_unit:
+                    units.append(new_unit)
+        return units
+
+    def get_props(self) -> List[Dict[str, str]]:
         """
-        full_name, short_name, factual_address, region_code,
-        inn, ogrn, kpp.
+        Возвращает список словарей реквизитов организации и ее филиалов.
         """
         organizations = []
 
-        name_info = self.element.find('СвНаимЮЛ').attrib
-        full_name = self.get_full_name()
+        name_info = self.element.find(self.name_root_tag).attrib
         factual_address, region_code = self.get_address_and_region_code()
 
         organizations.append(
             {
-                'full_name': self.get_full_name(),
+                'full_name': self.full_name,
                 'short_name': self.get_short_name(name_info),
                 'ogrn': self.ogrn,
                 'inn': self.inn,
@@ -335,48 +356,7 @@ class EgrulMainOrg:
                 'region_code': region_code,
             }
         )
-
-        if self.has_branches():
-
-            units = (self.element
-                     .find(self.units_root_tag)
-                     .findall(self.unit_tag)
-                     )
-
-            for unit in units:
-                new_unit = EgrulUnitOrg(unit, ogrn=self.ogrn,
-                                        inn=self.inn, main_full_name=full_name)
-                organizations.append(new_unit.get_props())
+        for unit in self.get_units():
+            organizations.append(unit)
 
         return organizations
-
-
-def get_organization_ogrn(
-        element: etree.Element
-) -> str:
-    return element.attrib['ОГРН']
-
-
-def get_organizations_from_xml(file_path, is_update):
-    organizations = []
-    organizations_to_delete = []
-
-    tree = etree.parse(file_path)
-    elements = tree.findall('СвЮЛ')
-
-    for element in elements:
-        if is_update:
-            organizations_to_delete.append(
-                get_organization_ogrn(element)
-            )
-
-        if not etree.iselement(element.find('СвПрекрЮЛ')):
-            egrul_orgs = EgrulMainOrg(element=element)
-            parsed_orgs = egrul_orgs.get_props()
-            for parsed_org in parsed_orgs:
-                organizations.append(
-                    Organization(
-                        **parsed_org
-                    )
-                )
-    return organizations, organizations_to_delete
