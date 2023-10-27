@@ -9,7 +9,7 @@ from mimesis.builtins import RussiaSpecProvider
 from mimesis.locales import Locale
 
 from organizations.models import Organization
-from ._xml_egrul_utils import EgrulMainOrg
+from .xml_egrul_utils.organizations import EgrulMainOrg
 
 
 class OrgParser(ABC):
