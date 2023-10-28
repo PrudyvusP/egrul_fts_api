@@ -88,12 +88,11 @@ class Handler:
 
         end = time.perf_counter()
         result = end - start
-
+        print(result)
         if self.deleter:
             with transaction.atomic():
                 self.deleter.delete(orgs_to_delete)
                 self.saver.save(orgs_to_save)
         else:
             self.saver.save(orgs_to_save)
-        print(result)
         # self.print_report(stats)
