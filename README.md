@@ -80,16 +80,18 @@ docker exec -it infra_web_1 python3 manage.py collectstatic
 Сведения из ЕГРЮЛ могут быть обработаны как по формату 405 (адреса в формате КЛАДР), так и по формату
 406 (адреса в формате ФИАС).
 
-Для использования реальных данных из ЕГРЮЛ предусмотрено использование команд `fill_egrul` и `update_egrul`:
+Для использования реальных данных из ЕГРЮЛ предусмотрено использование команды `fill_egrul`:
 
 ```bash
-docker exec -it infra_web_1 python3 manage.py fill_egrul egrul_data/<path_to_dir_with_xml>
-docker exec -it infra_web_1 python3 manage.py update_egrul egrul_data/<path_to_dir_with_xml>
+docker exec -it infra_web_1 python3 manage.py fill_egrul egrul_data/<path_to_dir_with_xml> -n <proc_num> [--update]
 ```
 
 При этом *egrul_data/<path_to_dir_with_xml>* в текущем
 виде [конфига](https://github.com/PrudyvusP/egrul_fts_api/blob/main/infra/docker-compose.yaml)
-смонтируется в */tmp/<path_to_dir_with_xml>*, где должны лежать XML-файлы ЕГРЮЛ.
+смонтируется в */tmp/<path_to_dir_with_xml>*, где должны лежать XML-файлы ЕГРЮЛ.  
+<proc_num> - количество процессов.  
+--update - признак обновления сведений.
+
 
 Для демонстрации логики работы сервиса предусмотрена команда, которая создаст *N*
 относительно похожих на реальные данные строчек в БД:
