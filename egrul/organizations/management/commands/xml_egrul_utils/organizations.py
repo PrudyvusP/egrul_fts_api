@@ -88,14 +88,16 @@ class EgrulUnitOrg:
         name = self.unit_element.find(self.full_name_root_tag)
 
         if etree.iselement(name):
-            return f'{self.main_full_name}. {name.attrib[self.full_name_attrib]}'
+            return (f'{self.main_full_name}.'
+                    f' {name.attrib[self.full_name_attrib]}')
         return f'{self.main_full_name}. ФИЛИАЛ'
 
-    def get_kpp(self) -> str:
+    def get_kpp(self) -> Optional[str]:
         """Возвращает КПП."""
         kpp = self.unit_element.find(self.kpp_root_tag)
         if etree.iselement(kpp):
             return kpp.attrib.get(self.kpp_attrib)
+        return None
 
     def get_address_and_region_code(self) -> Tuple[str, str]:
         """Возвращает фактический адрес и код региона."""
@@ -274,6 +276,7 @@ class EgrulMainOrg:
                 and len(short_name_field.get(self.short_name_attrib)
                         ) > self.MIN_SHORT_NAME_LEN):
             return short_name_field.get(self.short_name_attrib)
+        return None
 
     def get_address_and_region_code(self) -> Tuple[str, str]:
         """Возвращает фактический адрес и код региона.
