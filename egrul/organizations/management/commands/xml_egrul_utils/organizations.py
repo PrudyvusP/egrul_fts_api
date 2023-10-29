@@ -197,25 +197,25 @@ class EgrulMainOrg:
 
     Методы
     ----------
-    is_liquidated(self) -> bool
+    is_liquidated() -> bool
         Определяет ликвидирована ли организация
-    ogrn(self) -> str
+    ogrn() -> str
         Свойство. Возвращает ОГРН
-    inn(self) -> str
+    inn() -> str
         Свойство. Возвращает ИНН
-    kpp(self) -> str
+    kpp() -> str
         Свойство. Возвращает КПП
-    full_name(self) -> str
+    full_name() -> str
         Свойство. Возвращает полное наименование.
-    get_short_name(self, name_info: etree.Element) -> Optional[str]
+    get_short_name(name_info: etree.Element) -> Optional[str]
         Возвращает сокращенное наименование
-    get_address_and_region_code(self) -> Tuple[str, str]
+    get_address_and_region_code() -> Tuple[str, str]
         Возвращает фактический адрес и код региона
-    has_units(self) -> bool
+    has_units() -> bool
         Определяет есть ли филиалы у организации
-    get_units(self) -> List[Dict[str, str]]
+    get_units() -> List[Dict[str, str]]
         Возвращает список словарей реквизитов филиалов организации.
-    get_props(self) -> List[Dict[str, str]]
+    get_props() -> List[Dict[str, str]]
         Возвращает словарь с реквизитами организации и ее филиалов
     """
 

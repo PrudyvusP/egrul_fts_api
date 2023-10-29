@@ -1,3 +1,5 @@
+import os
+
 from django.core.management.base import BaseCommand
 
 from ._handlers import EgrulHandler
@@ -18,8 +20,10 @@ class Command(BaseCommand):
         parser.add_argument('-n', '--proc-num',
                             type=int,
                             dest='N',
+                            choices=range(1, 9),
+                            metavar="[1-8]",
                             default=1,
-                            help=('Количество процессов'
+                            help=('Количество процессов [1-8]'
                                   ' (по умолчанию: 1)')
                             )
         parser.add_argument('--update',

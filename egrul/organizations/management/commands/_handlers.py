@@ -3,7 +3,7 @@ import datetime
 import sys
 from multiprocessing import Pool, RLock
 from pathlib import Path
-from typing import Dict, Iterable
+from typing import Dict, Iterable, List, Tuple
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
@@ -28,7 +28,6 @@ class OrgDeleter:
         Удаляет сведения об организациях из БД по переданной
         последовательности ОГРН организаций.
         """
-
         Organization.objects.filter(ogrn__in=orgs_ogrns).delete()
 
 
@@ -50,7 +49,7 @@ class OrgSaver:
     def __init__(self, batch_size: int = 10000) -> None:
         self.batch_size: int = batch_size
 
-    def save(self, orgs: Iterable['Organization']):
+    def save(self, orgs: Iterable['Organization']) -> None:
         """
         Сохраняет в БД переданные организации и актуализирует
         дату внесения изменений в БД. Актуальная дата
@@ -62,7 +61,6 @@ class OrgSaver:
         orgs : Iterable['Organization']
             Последовательность организаций, которые необходимо сохранить в БД
         """
-
         if orgs:
             Organization.objects.bulk_create(orgs, batch_size=self.batch_size)
         try:
@@ -96,7 +94,6 @@ class Handler(abc.ABC):
         stats : Dict[str, Dict[str, str]]
             Словарь с исходными данными
         """
-
         for value in stats.values():
             print(f'{value["verbose_name"]}: {value["value"]}',
                   file=sys.stdout)
@@ -110,6 +107,15 @@ class EgrulHandler(Handler):
     """
     Обработчик сведений об организациях из XML-файлов ЕГРЮЛ.
 
+    Атрибуты класса
+    ----------
+    SUCCESS_CODE : int (по умолчанию - 0)
+        Код успешного завершения обработки
+    XML_NOT_FOUND_CODE : int (по умолчанию - -1)
+        Код отсутствия хотя бы одного XML-файла ЕГРЮЛ
+    status_codes
+        Словарь типа "код статуса : текстовая информация статуса"
+
     Атрибуты
     ----------
     cpu_count : int
@@ -121,55 +127,114 @@ class EgrulHandler(Handler):
 
     Методы
     -------
-    handle()
+    handle() -> int
         Управляет обработкой сведениями из XML-файлов ЕГРЮЛ
+    print_result(status_code: int) -> None
+        Выводит в консоль сообщение по номеру кода
+    divide_all_xml_into_equal_chunks(self, xml_files: List[Path])
+     -> List[List[Path]]
+        Разделяет объекты типа `Path` на равные куски
+    create_jobs(pool: Pool, chunked_xml_paths: List[List[Path]])
+        Возвращает список задач для процессов
+        (список объектов multiprocessing.pool.ApplyResult)
+    merge_results_from_jobs(self, jobs) -> Tuple[List[Dict], List[str]]
+        Соединяет результаты выполнения задач
+    interact_with_db(orgs_to_save, orgs_to_delete) -> None
+        Взаимодействует с БД
     """
+    SUCCESS_CODE: int = 0
+    XML_NOT_FOUND_CODE: int = -1
+
+    status_codes = {
+        XML_NOT_FOUND_CODE: 'Ошибка! Не найдено подходящих XML-файлов!',
+        SUCCESS_CODE: 'Успех!'
+    }
 
     def __init__(self, cpu_count: int, dir_name: str, is_update: bool) -> None:
         self.cpu_count = cpu_count
         self.dir_name = dir_name
         self.is_update = is_update
 
-    def handle(self):
-        """
-        Управляет обработкой сведениями из XML-файлов ЕГРЮЛ.
-        Поддерживает два основных способа работы:
-        если флаг `is_update = True`, то из БД удаляются все организации,
-        которые присутствуют в файлах с обновлениями ЕГРЮЛ и заливаются
-        только действующие организации. Если же флаг `is_update = False`,
-        то БД очищается, и действующие организации заливаются в БД.
-        """
+    def print_result(self, status_code: int) -> None:
+        """Выводит в консоль сообщение по номеру кода."""
+        print(self.status_codes[status_code], file=sys.stdout)
 
-        xml_files = list(Path(self.dir_name).rglob('*.XML'))
+    def divide_all_xml_into_equal_chunks(self,
+                                         xml_files: List[Path]
+                                         ) -> List[List[Path]]:
+        """Разделяет объекты типа `Path` на равные куски."""
         chunk_len = len(xml_files) // self.cpu_count + 1
-        chunked_xml_paths = [
+        return [
             xml_files[i:i + chunk_len]
             for i in range(0, len(xml_files), chunk_len)
         ]
-        pool = Pool(processes=self.cpu_count, initargs=(RLock(),))
-        jobs = []
 
+    def create_jobs(self,
+                    pool: Pool,
+                    chunked_xml_paths: List[List[Path]]
+                    ):
+        """
+        Возвращает список задач для процессов
+        (список объектов multiprocessing.pool.ApplyResult).
+        """
+        jobs = []
         for chunked_xml_path in chunked_xml_paths:
             parser = XMLOrgParser(xml_files=chunked_xml_path,
                                   is_update=self.is_update)
             jobs.append(pool.apply_async(parser.parse))
+        return jobs
 
+    def merge_results_from_jobs(self, jobs) -> Tuple[List[Dict], List[str]]:
+        """Соединяет и выводит в консоль результаты выполнения задач."""
         orgs_to_save = []
         orgs_to_delete = []
+
         for job in jobs:
             orgs_from_job, stats, orgs_to_delete_from_job = job.get()
-
             orgs_to_save.extend(orgs_from_job)
             orgs_to_delete.extend(orgs_to_delete_from_job)
             self.print_report(stats)
+        return orgs_to_save, orgs_to_delete
 
+    def interact_with_db(self, orgs_to_save, orgs_to_delete) -> None:
+        """
+        Взаимодействует с БД.
+        Если передан флаг `self.is_update`, то из БД удаляются все организации
+        по их ОГРН, которые встречаются в файлах обновлений ЕГРЮЛ
+        (`orgs_to_delete`).
+        В ином случае таблица с организациями очищается.
+        В конечном итоге в БД сохраняются новые организации `orgs_to_save`.
+        """
         with transaction.atomic():
             if self.is_update:
                 OrgDeleter().delete(orgs_to_delete)
-                OrgSaver().save(orgs_to_save)
             else:
                 Organization.truncate_ri()
-                OrgSaver().save(orgs_to_save)
+            OrgSaver().save(orgs_to_save)
+
+    def handle(self) -> int:
+        """
+        Управляет логикой обработки сведениями из XML-файлов ЕГРЮЛ.
+
+        1) Ищем рекурсивно XML-файлы;
+        2) Делим XML-файлы на равные куски в зависимости от кол-ва процессов;
+        3) Создаем пул процессов;
+        4) Создаем задачи для процессов;
+        5) Запускаем задачи и соединяем результаты выполнения задач;
+        6) Взаимодействуем с БД;
+        7) Выводим сообщение об успешном завершении обработки.
+        """
+        xml_files = list(Path(self.dir_name).rglob('*.XML'))
+        if not xml_files:
+            self.print_result(self.XML_NOT_FOUND_CODE)
+            return self.XML_NOT_FOUND_CODE
+        chunked_xml_paths = self.divide_all_xml_into_equal_chunks(xml_files)
+        pool = Pool(processes=self.cpu_count, initargs=(RLock(),))
+        jobs = self.create_jobs(pool, chunked_xml_paths)
+        orgs_to_save, orgs_to_delete = self.merge_results_from_jobs(jobs)
+        self.interact_with_db(orgs_to_save, orgs_to_delete)
+        self.print_result(self.SUCCESS_CODE)
+        return self.SUCCESS_CODE
 
 
 class TestDataHandler(Handler):
@@ -187,17 +252,17 @@ class TestDataHandler(Handler):
         Управляет обработкой сведениями
     """
 
-    def __init__(self, num):
+    def __init__(self, num: int):
         self.num = num
 
-    def handle(self):
+    def handle(self) -> int:
         """
         Управляет обработкой сведениями о демонстрационных организациях.
-        Создает несуществующие реквизиты организаций, сохранят их в БД,
+        Создает несуществующие реквизиты организаций, сохраняет их в БД,
         выводит отчетность.
         """
-
         parser = GenerateOrgParser(self.num)
         orgs, stats, ogrns_orgs_to_delete = parser.parse()
         OrgSaver().save(orgs)
         self.print_report(stats)
+        return 0
