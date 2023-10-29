@@ -1,8 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from ._base_parser import GenerateOrgParser
-from ._base_saver import OrgSaver
-from ._handlers import Handler
+from ._handlers import TestDataHandler
 
 
 class Command(BaseCommand):
@@ -17,9 +15,5 @@ class Command(BaseCommand):
                             help='Количество организаций')
 
     def handle(self, *args, **options):
-        num = options.get('org_num')
-        handler = Handler(
-            org_parser=GenerateOrgParser(num),
-            org_saver=OrgSaver()
-        )
+        handler = TestDataHandler(num=options.get('org_num'))
         handler.handle()

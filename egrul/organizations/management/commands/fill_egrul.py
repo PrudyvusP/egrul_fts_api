@@ -1,9 +1,8 @@
+import os
+
 from django.core.management.base import BaseCommand
 
-from organizations.models import Organization
-from ._base_parser import XMLOrgParser
-from ._base_saver import OrgSaver
-from ._handlers import Handler
+from ._handlers import EgrulHandler
 
 
 class Command(BaseCommand):
@@ -16,14 +15,28 @@ class Command(BaseCommand):
         parser.add_argument('dir_name',
                             type=str,
                             help=('Путь до директории,'
-                                  ' содержащей сведения из ЕГРЮЛ')
+                                  ' содержащей XML-файлы ЕГРЮЛ')
+                            )
+        parser.add_argument('-n', '--proc-num',
+                            type=int,
+                            dest='N',
+                            choices=range(1, 9),
+                            metavar="[1-8]",
+                            default=1,
+                            help=('Количество процессов [1-8]'
+                                  ' (по умолчанию: 1)')
+                            )
+        parser.add_argument('--update',
+                            dest='is_update',
+                            action='store_true',
+                            help=('Флаг переключения режимов.'
+                                  ' Если включён, то режим обновления')
                             )
 
     def handle(self, *args, **options):
-        Organization.truncate_ri()
-        dir_name = options.get('dir_name')
-        handler = Handler(
-            org_parser=XMLOrgParser(dir_name, update=False),
-            org_saver=OrgSaver()
+        handler = EgrulHandler(
+            cpu_count=options.get('N'),
+            dir_name=options.get('dir_name'),
+            is_update=options.get('is_update')
         )
         handler.handle()

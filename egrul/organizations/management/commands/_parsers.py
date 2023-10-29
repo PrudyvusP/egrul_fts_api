@@ -1,8 +1,7 @@
-import os
 import random
 import string
 from abc import ABC, abstractmethod
-from typing import Tuple, List, Dict
+from typing import Dict, Iterable, List, Tuple
 
 from lxml import etree
 from mimesis import Generic
@@ -10,7 +9,7 @@ from mimesis.builtins import RussiaSpecProvider
 from mimesis.locales import Locale
 
 from organizations.models import Organization
-from ._xml_egrul_utils import get_organization_objects, get_organization_ogrn
+from .xml_egrul_utils.organizations import EgrulMainOrg
 
 
 class OrgParser(ABC):
@@ -41,7 +40,7 @@ class XMLOrgParser(OrgParser):
     ----------
     dir_name : str
         Наименование директории, в которой расположены XML-файлы
-    update : bool (по умолчанию False)
+    is_update : bool (по умолчанию False)
         Флажок для управления режимом залива/обновления сведений из ЕГРЮЛ
 
     Методы
@@ -50,9 +49,9 @@ class XMLOrgParser(OrgParser):
         Реализует логику сбора данных об организациях из XML-файлов
     """
 
-    def __init__(self, dir_name: str, update: bool = False) -> None:
-        self.dir_name = dir_name
-        self.update = update
+    def __init__(self, xml_files: Iterable, is_update: bool = False) -> None:
+        self.xml_files = xml_files
+        self.is_update = is_update
 
     def parse(
             self,
@@ -69,43 +68,32 @@ class XMLOrgParser(OrgParser):
 
         orgs: List['Organization'] = []
         counter: int = 0
-        counter_liq: int = 0
         counter_upd_new: int = 0
         ogrns_orgs_to_delete: List[str] = []
 
-        for root, dirs, files in os.walk(self.dir_name):
-            for file in files:
-                file_path = os.path.join(root, file)
-                counter += 1
-                tree = etree.parse(file_path)
-                elements = tree.findall('СвЮЛ')
+        for xml_path in self.xml_files:
+            counter += 1
+            tree = etree.parse(xml_path)
+            elements = tree.findall('СвЮЛ')
+            for element in elements:
+                egrul_org = EgrulMainOrg(element=element)
+                if not egrul_org.is_liquidated:
+                    parsed_orgs = egrul_org.get_props()
 
-                for element in elements:
-                    if self.update:
-                        ogrns_orgs_to_delete.append(
-                            get_organization_ogrn(element)
-                        )
+                    for parsed_org in parsed_orgs:
+                        orgs.append(Organization(**parsed_org))
+                        counter_upd_new += 1
 
-                    if etree.iselement(element.find('СвПрекрЮЛ')):
-                        counter_liq += 1
-                    else:
-                        orgs_from_xml = get_organization_objects(element)
-                        counter_upd_new += len(orgs_from_xml)
-                        for org_from_xml in orgs_from_xml:
-                            orgs.append(org_from_xml)
+                if self.is_update:
+                    ogrns_orgs_to_delete.append(egrul_org.ogrn)
 
         stats: Dict[str, Dict[str, str]] = {
             'counter': {
                 "verbose_name": 'Обработано файлов',
                 "value": counter
             },
-            'counter_liq': {
-                "verbose_name": 'Ликвидированных организаций пропущено',
-                "value": counter_liq
-            },
             'counter_new': {
-                "verbose_name": ('Новых или измененных старых'
-                                 ' организаций залито'),
+                "verbose_name": 'Новых или измененных организаций залито',
                 "value": counter_upd_new
             },
         }
@@ -164,10 +152,10 @@ class GenerateOrgParser(OrgParser):
         short_names: Tuple[str] = tuple(self.forms.keys())
 
         for _ in range(self.num):
-            address = (f'{g.address.address().upper()}, '
-                       f'{g.address.city().upper()}, '
-                       f'{g.address.region().upper()}, '
-                       f'{g.address.zip_code()}')
+            address = (f'{g.address.address()}, '
+                       f'{g.address.city()}, '
+                       f'{g.address.region()}, '
+                       f'{g.address.zip_code()}').upper()
             short_name_abbr: str = random.choice(short_names)
             full_name_abbr: str = self.forms[short_name_abbr]
             word: str = f'"{g.text.word().upper()}"'
