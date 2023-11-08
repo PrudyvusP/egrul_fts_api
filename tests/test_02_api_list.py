@@ -3,8 +3,8 @@ from http import HTTPStatus
 import pytest
 
 
-@pytest.mark.django_db(transaction=True)
-class TestOrganizationAPI:
+@pytest.mark.django_db(transaction=False)
+class TestOrganizationsAPI:
     ORGANIZATION_URL = '/api/organizations/'
     RESPONSE_KEYS = ('count', 'next', 'previous', 'date_info', 'results')
     RESPONSE_RESULT_KEYS = ('full_name', 'short_name', 'inn',
@@ -40,6 +40,7 @@ class TestOrganizationAPI:
         organizations = r.data['results']
         assert organizations, 'список организаций пустой'
         org = organizations[0]
+        print(org)
         for response_result_key in self.RESPONSE_RESULT_KEYS:
             assert response_result_key in org, (f'поле'
                                                 f' {response_result_key} '
