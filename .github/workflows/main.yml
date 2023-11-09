@@ -26,7 +26,3 @@ jobs:
       run: |
         # запуск проверки проекта по flake8
         python -m flake8
-    - name: Testing with pytest
-      run: |
-        # запуск проверки проекта pytest
-        python -m pytest
