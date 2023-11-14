@@ -23,7 +23,8 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-
+        volumes:
+          - share:/usr/share/postgresql/12
     strategy:
       matrix:
         python-version: [ "3.8", "3.9" ]
@@ -47,19 +48,6 @@ jobs:
           python -m flake8
       - name: Creating dict
         run: |
-          cp /usr/share/postgresql/12/tsearch_data/russian.stop /usr/share/postgresql/12/tsearch_data/russian_extended.stop
-          echo -e 'общество\nответственностью\nограниченной' >> /usr/share/postgresql/12/tsearch_data/russian_extended.stop
+          ls share/
 
-      - name: Testing with pytest
-        env:
-          DB_ENGINE: django.db.backends.postgresql
-          DB_NAME: organizations
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          SECRET_KEY: indonesia_Xena
-          BACKEND_HOSTS: testserver 127.0.0.1 localhost
-        run: |
-          # запуск проверки проекта pytest
-          python -m pytest
+
