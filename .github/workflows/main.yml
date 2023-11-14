@@ -6,6 +6,17 @@ jobs:
 
   tests:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:12
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: organizations
+        options:
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries
+        ports:
+          - 5432:5432
     strategy:
       matrix:
         python-version: ["3.8", "3.9"]
@@ -26,3 +37,16 @@ jobs:
       run: |
         # запуск проверки проекта по flake8
         python -m flake8
+    - name: Testing with pytest
+      env:
+        DB_ENGINE: django.db.backends.postgresql
+        DB_NAME: organizations
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        DB_HOST: 127.0.0.1
+        DB_PORT: 5432
+        SECRET_KEY: indonesia_Xena
+        BACKEND_HOSTS: testserver 127.0.0.1 localhost
+      run: |
+        # запуск проверки проекта pytest
+        python -m pytest
