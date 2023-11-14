@@ -1,5 +1,3 @@
-import os
-
 from django.core.management.base import BaseCommand
 
 from ._handlers import EgrulHandler
@@ -39,4 +37,6 @@ class Command(BaseCommand):
             dir_name=options.get('dir_name'),
             is_update=options.get('is_update')
         )
-        handler.handle()
+        stats = handler.handle()
+        for stat in stats:
+            self.stdout.write(f'{stat}: {stats[stat]}')

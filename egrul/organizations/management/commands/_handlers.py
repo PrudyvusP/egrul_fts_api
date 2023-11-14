@@ -1,9 +1,8 @@
 import abc
 import datetime
-import sys
 from multiprocessing import Pool, RLock
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Tuple, Union
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
@@ -77,26 +76,10 @@ class Handler(abc.ABC):
 
     Методы
     -------
-    print_report(stats: Dict[str, Dict[str, str]])
-        Выводит отчетность в консоль
     handle()
         Абстрактный метод обработки. При наследовании логику
         переопределить
     """
-
-    @staticmethod
-    def print_report(stats: Dict[str, Dict[str, str]]) -> None:
-        """
-        Выводит отчетность результата работы в консоль.
-
-        Параметры
-        -------
-        stats : Dict[str, Dict[str, str]]
-            Словарь с исходными данными
-        """
-        for value in stats.values():
-            print(f'{value["verbose_name"]}: {value["value"]}',
-                  file=sys.stdout)
 
     @abc.abstractmethod
     def handle(self):
@@ -106,15 +89,6 @@ class Handler(abc.ABC):
 class EgrulHandler(Handler):
     """
     Обработчик сведений об организациях из XML-файлов ЕГРЮЛ.
-
-    Атрибуты класса
-    ----------
-    SUCCESS_CODE : int (по умолчанию - 0)
-        Код успешного завершения обработки
-    XML_NOT_FOUND_CODE : int (по умолчанию - -1)
-        Код отсутствия хотя бы одного XML-файла ЕГРЮЛ
-    status_codes
-        Словарь типа "код статуса : текстовая информация статуса"
 
     Атрибуты
     ----------
@@ -127,37 +101,25 @@ class EgrulHandler(Handler):
 
     Методы
     -------
-    handle() -> int
+    handle() -> Dict[str, Union[int, str]]
         Управляет обработкой сведениями из XML-файлов ЕГРЮЛ
-    print_result(status_code: int) -> None
-        Выводит в консоль сообщение по номеру кода
     divide_all_xml_into_equal_chunks(self, xml_files: List[Path])
      -> List[List[Path]]
         Разделяет объекты типа `Path` на равные куски
     create_jobs(pool: Pool, chunked_xml_paths: List[List[Path]])
         Возвращает список задач для процессов
         (список объектов multiprocessing.pool.ApplyResult)
-    merge_results_from_jobs(self, jobs) -> Tuple[List[Dict], List[str]]
-        Соединяет результаты выполнения задач
+    merge_results_from_jobs(jobs)
+    -> Tuple[List[Dict], List[str], Dict[str, int]]
+        Возвращает общие результаты выполнения задач
     interact_with_db(orgs_to_save, orgs_to_delete) -> None
         Взаимодействует с БД
     """
-    SUCCESS_CODE: int = 0
-    XML_NOT_FOUND_CODE: int = -1
-
-    status_codes = {
-        XML_NOT_FOUND_CODE: 'Ошибка! Не найдено подходящих XML-файлов!',
-        SUCCESS_CODE: 'Успех!'
-    }
 
     def __init__(self, cpu_count: int, dir_name: str, is_update: bool) -> None:
         self.cpu_count = cpu_count
         self.dir_name = dir_name
         self.is_update = is_update
-
-    def print_result(self, status_code: int) -> None:
-        """Выводит в консоль сообщение по номеру кода."""
-        print(self.status_codes[status_code], file=sys.stdout)
 
     def divide_all_xml_into_equal_chunks(self,
                                          xml_files: List[Path]
@@ -184,17 +146,22 @@ class EgrulHandler(Handler):
             jobs.append(pool.apply_async(parser.parse))
         return jobs
 
-    def merge_results_from_jobs(self, jobs) -> Tuple[List[Dict], List[str]]:
-        """Соединяет и выводит в консоль результаты выполнения задач."""
+    @staticmethod
+    def merge_results_from_jobs(
+            jobs
+    ) -> Tuple[List[Dict], List[str], Dict[str, int]]:
+        """Возвращает общий результат выполнения задач."""
         orgs_to_save = []
         orgs_to_delete = []
-
+        all_stats = {}
         for job in jobs:
             orgs_from_job, stats, orgs_to_delete_from_job = job.get()
             orgs_to_save.extend(orgs_from_job)
             orgs_to_delete.extend(orgs_to_delete_from_job)
-            self.print_report(stats)
-        return orgs_to_save, orgs_to_delete
+            for value in stats.values():
+                m_name = value['verbose_name']
+                all_stats[m_name] = (all_stats.get(m_name, 0) + value['value'])
+        return orgs_to_save, orgs_to_delete, all_stats
 
     def interact_with_db(self, orgs_to_save, orgs_to_delete) -> None:
         """
@@ -212,7 +179,7 @@ class EgrulHandler(Handler):
                 Organization.truncate_ri()
             OrgSaver().save(orgs_to_save)
 
-    def handle(self) -> int:
+    def handle(self) -> Dict[str, Union[int, str]]:
         """
         Управляет логикой обработки сведениями из XML-файлов ЕГРЮЛ.
 
@@ -222,19 +189,17 @@ class EgrulHandler(Handler):
         4) Создаем задачи для процессов;
         5) Запускаем задачи и соединяем результаты выполнения задач;
         6) Взаимодействуем с БД;
-        7) Выводим сообщение об успешном завершении обработки.
+        7) Возвращаем отчет по результатам обработки.
         """
         xml_files = list(Path(self.dir_name).rglob('*.XML'))
         if not xml_files:
-            self.print_result(self.XML_NOT_FOUND_CODE)
-            return self.XML_NOT_FOUND_CODE
+            return {'Возникла ошибка': 'Отсутствуют подходящие XML-файлы'}
         chunked_xml_paths = self.divide_all_xml_into_equal_chunks(xml_files)
         pool = Pool(processes=self.cpu_count, initargs=(RLock(),))
         jobs = self.create_jobs(pool, chunked_xml_paths)
-        orgs_to_save, orgs_to_delete = self.merge_results_from_jobs(jobs)
+        orgs_to_save, orgs_to_delete, sts = self.merge_results_from_jobs(jobs)
         self.interact_with_db(orgs_to_save, orgs_to_delete)
-        self.print_result(self.SUCCESS_CODE)
-        return self.SUCCESS_CODE
+        return sts
 
 
 class TestDataHandler(Handler):
@@ -255,14 +220,15 @@ class TestDataHandler(Handler):
     def __init__(self, num: int):
         self.num = num
 
-    def handle(self) -> int:
+    def handle(self) -> dict:
         """
         Управляет обработкой сведениями о демонстрационных организациях.
         Создает несуществующие реквизиты организаций, сохраняет их в БД,
-        выводит отчетность.
+        возвращает словарь с результатами обработки.
         """
         parser = GenerateOrgParser(self.num)
-        orgs, stats, ogrns_orgs_to_delete = parser.parse()
+        orgs, stats, _ = parser.parse()
         OrgSaver().save(orgs)
-        self.print_report(stats)
-        return 0
+        return {
+            stats['counter_new']['verbose_name']: stats['counter_new']['value']
+        }
