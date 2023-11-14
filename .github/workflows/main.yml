@@ -23,6 +23,8 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+        volumes:
+          -"${{github.workspace}}":/var/lib/postgresql/data
     strategy:
       matrix:
         python-version: [ "3.8", "3.9" ]
@@ -42,8 +44,8 @@ jobs:
 
       - name: Testing with flake8
         run: |
-          # запуск проверки проекта по flake8
           python -m flake8
+
       - name: Creating dict
         run: |
           ls
@@ -59,5 +61,4 @@ jobs:
           SECRET_KEY: indonesia_Xena
           BACKEND_HOSTS: testserver 127.0.0.1 localhost
         run: |
-          # запуск проверки проекта pytest
           python -m pytest
