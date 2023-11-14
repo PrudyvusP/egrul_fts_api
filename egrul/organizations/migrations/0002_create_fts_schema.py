@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             CREATE TEXT SEARCH DICTIONARY public.russian_custom_dict (
             template=snowball,
             language=russian,
-            stopwords=russian_extended);
+            stopwords=russian);
 
             ALTER TEXT SEARCH CONFIGURATION public.russian_egrul
             ALTER MAPPING FOR hword, hword_part, word
