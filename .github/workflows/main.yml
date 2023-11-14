@@ -48,4 +48,4 @@ jobs:
           python -m flake8
       - name: Creating dict
         run: |
-          ls
+          pwd
