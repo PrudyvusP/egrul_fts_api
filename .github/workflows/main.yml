@@ -21,8 +21,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        volumes:
-          - /home/runner/work/egrul_fts_api/egrul_fts_api:/var/lib/postgresql/data
         ports:
           - 5432:5432
     strategy:
@@ -36,30 +34,30 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      #- name: Installing dependencies
-      #  run: |
-      #    python -m pip install --upgrade pip
-      #    pip install flake8 pep8-naming flake8-broken-line flake8-return flake8-isort
-      #    pip install -r egrul/requirements.txt
+      - name: Installing dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pep8-naming flake8-broken-line flake8-return flake8-isort
+          pip install -r egrul/requirements.txt
 
-      #- name: Testing with flake8
-      #  run: |
-      #    # запуск проверки проекта по flake8
-      #    python -m flake8
+      - name: Testing with flake8
+        run: |
+          # запуск проверки проекта по flake8
+          python -m flake8
       - name: Creating dict
         run: |
           ls
 
-      #- name: Testing with pytest
-      #  env:
-      #    DB_ENGINE: django.db.backends.postgresql
-      #    DB_NAME: organizations
-      #    POSTGRES_USER: postgres
-      #    POSTGRES_PASSWORD: postgres
-      #    DB_HOST: 127.0.0.1
-      #    DB_PORT: 5432
-      #    SECRET_KEY: indonesia_Xena
-      #    BACKEND_HOSTS: testserver 127.0.0.1 localhost
-      #  run: |
-      #    # запуск проверки проекта pytest
-      #   python -m pytest
+      - name: Testing with pytest
+        env:
+          DB_ENGINE: django.db.backends.postgresql
+          DB_NAME: organizations
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          SECRET_KEY: indonesia_Xena
+          BACKEND_HOSTS: testserver 127.0.0.1 localhost
+        run: |
+          # запуск проверки проекта pytest
+          python -m pytest
