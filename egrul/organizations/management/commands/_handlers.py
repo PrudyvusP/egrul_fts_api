@@ -159,10 +159,8 @@ class EgrulHandler(Handler):
             orgs_to_save.extend(orgs_from_job)
             orgs_to_delete.extend(orgs_to_delete_from_job)
             for value in stats.values():
-                all_stats[value['verbose_name']] = (
-                        all_stats.get(value['verbose_name'], 0)
-                        + value['value']
-                )
+                m_name = value['verbose_name']
+                all_stats[m_name] = (all_stats.get(m_name, 0) + value['value'])
         return orgs_to_save, orgs_to_delete, all_stats
 
     def interact_with_db(self, orgs_to_save, orgs_to_delete) -> None:
