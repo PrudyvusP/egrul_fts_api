@@ -22,7 +22,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
         volumes:
-          - /home/runner/work/egrul_fts_api/egrul_fts_api:/usr/share/postgresql/12/
+          - /home/runner/work/egrul_fts_api/egrul_fts_api:/var/lib/postgresql/data
         ports:
           - 5432:5432
     strategy:
