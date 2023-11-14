@@ -24,7 +24,7 @@ jobs:
         ports:
           - 5432:5432
         volumes:
-          - share:/usr/share/postgresql/12
+          - ./:/usr/share/postgresql/12
     strategy:
       matrix:
         python-version: [ "3.8", "3.9" ]
@@ -48,6 +48,4 @@ jobs:
           python -m flake8
       - name: Creating dict
         run: |
-          ls share/
-
-
+          ls
