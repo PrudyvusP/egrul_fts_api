@@ -197,5 +197,7 @@ class TestFillEgrul:
 
     def test_10_no_liquidated_org(self, make_call_command):
         self.fill_egrul_ok(make_call_command)
-        liquidated_org = Organization.objects.filter(short_name='ООО "ЛИКВИДИРОВАНО"').first()
+        liquidated_org = Organization.objects.filter(
+            short_name='ООО "ЛИКВИДИРОВАНО"'
+        ).first()
         assert not liquidated_org, 'Ликвидированная организация попала в БД'
