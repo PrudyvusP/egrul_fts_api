@@ -45,6 +45,10 @@ class Organization(models.Model):
         auto_now=True,
         help_text='Дата внесения организации в БД')
 
+    main = models.ForeignKey("self", on_delete=models.CASCADE,
+                             null=True, blank=True,
+                             related_name='branches')
+
     class Meta:
         verbose_name = 'Организация'
         verbose_name_plural = 'Организации'
