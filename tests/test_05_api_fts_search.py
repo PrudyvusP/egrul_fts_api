@@ -35,9 +35,9 @@ class TestAPIFTSSearch(TestUtil):
         result = user_client.get(self.URL).data
         assert 'detail' in result, 'Отсутствует ключ detail'
         assert (result['detail']
-                == 'Необходимо передать параметр q'), ('Некорректное '
-                                                       'сообщение об '
-                                                       'ошибке 400')
+                == 'Не передан обязательный параметр q.'), ('Некорректное '
+                                                            'сообщение об '
+                                                            'ошибке 400')
 
     def test_03_fts(self, user_client, organization_1, organization_2) -> None:
         result = user_client.get(self.URL, data=self.QUERY_PARAM).data

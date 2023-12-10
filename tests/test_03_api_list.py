@@ -2,7 +2,6 @@ import datetime
 from http import HTTPStatus
 
 import pytest
-
 from utils import TestUtil
 
 
@@ -15,7 +14,7 @@ class TestAPIList(TestUtil):
         HTTP-статусы ответа.
         Структура ответа, типы и значения полей.
         Пагинация.
-        Поиск.
+        Фильтрация.
         Идемпотентность GET-методов.
     """
 
@@ -23,9 +22,14 @@ class TestAPIList(TestUtil):
     RESPONSE_KEYS = ('count', 'next', 'previous', 'date_info', 'results')
     RESPONSE_RESULT_KEYS = ('full_name', 'short_name', 'inn',
                             'kpp', 'relative_addr')
-    INN_SEARCH_PARAM = {"search": "7777777777"}
-    OGRN_SEARCH_PARAM = {"search": "8888888888888"}
-    KPP_SEARCH_PARAM = {"search": "999999999"}
+    INN_FILTER_PARAM = {"inn": "7777777777"}
+    OGRN_FILTER_PARAM = {"ogrn": "8888888888888"}
+    KPP_FILTER_PARAM = {"kpp": "999999999"}
+    IS_MAIN_FILTER_PARAM = {"is_main": True}
+    KPP_AND_IS_MAIN_PARAMS = {
+        "kpp": "999999999",
+        "is_main": True
+    }
 
     def test_01_statuses(self, user_client) -> None:
         status = user_client.get(self.URL).status_code
@@ -86,24 +90,56 @@ class TestAPIList(TestUtil):
         assert prev_page2, 'Отсутствует ссылка на пред. страницу'
         assert isinstance(prev_page2, str), f'Вместо <str> {type(prev_page2)}'
 
-    def test_06_search(self, user_client, organization_1) -> None:
-        by_inn = user_client.get(self.URL, data=self.INN_SEARCH_PARAM).data
-        by_kpp = user_client.get(self.URL, data=self.KPP_SEARCH_PARAM).data
-        by_ogrn = user_client.get(self.URL, data=self.OGRN_SEARCH_PARAM).data
+    def test_06_filter_by_inn(
+            self, user_client, organization_2, organization_1) -> None:
+        by_inn = user_client.get(self.URL, data=self.INN_FILTER_PARAM).data
+        assert by_inn['count'] == 1
         assert by_inn['results']
-        assert by_kpp['results']
-        assert by_ogrn['results']
         assert by_inn['results'][0]['full_name'] == 'МИНИСТЕРСТВО МАГИИ'
+
+    def test_07_filter_by_kpp(
+            self, user_client, organization_2, organization_1) -> None:
+        by_kpp = user_client.get(self.URL, data=self.KPP_FILTER_PARAM).data
+        assert by_kpp['count'] == 1
+        assert by_kpp['results']
         assert by_kpp['results'][0]['full_name'] == 'МИНИСТЕРСТВО МАГИИ'
+
+    def test_08_filter_by_ogrn(
+            self, user_client, organization_2, organization_1) -> None:
+        by_ogrn = user_client.get(self.URL, data=self.OGRN_FILTER_PARAM).data
+        assert by_ogrn['count'] == 1
+        assert by_ogrn['results']
         assert by_ogrn['results'][0]['full_name'] == 'МИНИСТЕРСТВО МАГИИ'
 
-    def test_07_idempotent(self, user_client,
+    def test_09_filter_by_is_main(
+            self, user_client, organization_2, organization_1,
+            unit_of_organization_1) -> None:
+        by_is_main = user_client.get(
+            self.URL,
+            data=self.IS_MAIN_FILTER_PARAM).data
+        assert by_is_main['count'] == 2
+        assert by_is_main['results']
+        for org in by_is_main['results']:
+            assert org['kpp'] in ['999999999', '666666666']
+
+    def test_10_filter_by_is_main_and_kpp(
+            self, user_client, organization_1, organization_2,
+            unit_of_organization_1) -> None:
+        by_is_main_and_kpp = user_client.get(
+            self.URL,
+            data=self.KPP_AND_IS_MAIN_PARAMS).data
+        assert by_is_main_and_kpp['count'] == 1
+        assert by_is_main_and_kpp['results']
+        assert by_is_main_and_kpp['results'][0]['full_name'] == (
+            'МИНИСТЕРСТВО МАГИИ')
+
+    def test_11_idempotent(self, user_client,
                            organization_1, organization_2) -> None:
         r1 = user_client.get(self.URL).data
         r2 = user_client.get(self.URL).data
         assert r1 == r2, 'Система изменила состояние после GET-запросов'
 
-    def test_08_data(self, user_client, organization_1) -> None:
+    def test_12_data(self, user_client, organization_1) -> None:
         orgs = user_client.get(self.URL).data['results']
         assert orgs, 'Список организаций пустой'
         org = orgs[0]

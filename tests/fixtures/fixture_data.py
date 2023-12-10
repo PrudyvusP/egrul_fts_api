@@ -42,8 +42,24 @@ def organization_2():
         full_name='АКЦИОНЕРНОЕ ОБЩЕСТВО "ТЕСТЫ ЗДЕСЬ"',
         short_name='АО "ТЕСТЫ ЗДЕСЬ"',
         inn='1111111111',
-        ogrn='8888888888888',
-        kpp='999999999',
+        ogrn='7777777777777',
+        kpp='666666666',
         factual_address='УЛ. ТЕСТЕРОВ, Г. ТЕСТОВ, 212125',
         region_code='02'
+    )
+
+
+@pytest.fixture
+def unit_of_organization_1():
+    fill_egrul_version()
+    return Organization.objects.create(
+        full_name='МИНИСТЕРСТВО МАГИИ РЕСПУБЛИКИ ЧУВАШИИ',
+        short_name='МИНИСТЕРСТВО МАГИИ РЕСПУБЛИКИ ЧУВАШИИ',
+        inn='7777777777',
+        ogrn='8888888888888',
+        kpp='111111111',
+        factual_address='УЛ. ВОИНОВ-ИНТЕРНАЦИОНАЛТИСТОВ, Г. НОВОЧЕБОКСАРСК, '
+                        'Д.34, 111111',
+        region_code='21',
+        is_main=False
     )
