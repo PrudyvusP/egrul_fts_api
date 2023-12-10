@@ -19,7 +19,10 @@ class OrganizationFilter(django_filters.FilterSet):
                                      lookup_expr='exact',
                                      min_length=13,
                                      max_length=13)
+    is_main = django_filters.BooleanFilter(label='Фильтрация по основным '
+                                                 'организациям '
+                                                 'или по филиалам')
 
     class Meta:
         model = Organization
-        fields = ('inn', 'kpp', 'ogrn')
+        fields = ('inn', 'kpp', 'ogrn', 'is_main')

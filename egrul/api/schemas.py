@@ -15,7 +15,7 @@ RESPONSES_FOR_FTS_SEARCH = {
                             examples={
                                 "application/json": {
                                     "detail": "Не передан обязательный "
-                                              "параметр q"}
+                                              "параметр q."}
                             })
 }
 PARAMS_FOR_FTS_SEARCH = [

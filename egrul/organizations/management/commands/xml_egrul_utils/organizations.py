@@ -88,8 +88,7 @@ class EgrulUnitOrg:
         name = self.unit_element.find(self.full_name_root_tag)
 
         if etree.iselement(name):
-            return (f'{self.main_full_name}.'
-                    f' {name.attrib[self.full_name_attrib]}')
+            return name.attrib[self.full_name_attrib]
         return f'{self.main_full_name}. ФИЛИАЛ'
 
     def get_kpp(self) -> Optional[str]:
@@ -135,6 +134,7 @@ class EgrulUnitOrg:
             'kpp': kpp,
             'factual_address': factual_address,
             'region_code': region_code,
+            'is_main': False
         }
 
 
@@ -337,6 +337,7 @@ class EgrulMainOrg:
                 'kpp': self.kpp,
                 'factual_address': factual_address,
                 'region_code': region_code,
+                'is_main': True
             }
         )
         for unit in self.get_units():

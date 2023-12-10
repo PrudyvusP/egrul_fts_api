@@ -83,4 +83,4 @@ class OrganizationViewSet(RetrieveListViewSet):
             return Response(serializer.data)
 
         return Response(status=http.HTTPStatus.BAD_REQUEST,
-                        data={'detail': 'Не передан обязательный параметр q'})
+                        data={'detail': 'Не передан обязательный параметр q.'})
