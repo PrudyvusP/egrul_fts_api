@@ -25,12 +25,6 @@ class OrganizationRetrieveSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        exclude = ['full_name_search', 'id', 'date_added']
+        fields = ('full_name', 'short_name', 'inn', 'kpp', 'ogrn',
+                  'factual_address', 'region_code')
         read_only_fields = ('full_name', 'factual_address', 'ogrn')
-
-
-class ErrorSerializer(serializers.Serializer):
-    """Сериализатор для вывода ошибки."""
-
-    detail = serializers.CharField(help_text='Описание ошибки',
-                                   required=False)
