@@ -1,8 +1,8 @@
-FROM python:3.8-slim
+FROM python:3.10-alpine
 WORKDIR /app
-RUN pip3 install --upgrade pip
+RUN python -m pip install -U pip
 COPY requirements.txt .
-RUN pip3 install -r requirements.txt --no-cache-dir
+RUN python -m pip install -r requirements.txt
 COPY . .
 RUN mkdir egrul_data
 CMD ["gunicorn", "egrul.wsgi:application", "--bind", "0:8000" ]

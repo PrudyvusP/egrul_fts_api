@@ -36,9 +36,9 @@ nano infra/.env
 
 ```bash
 cd infra/
-docker-compose up --build --d
-docker-compose exec web python3 manage.py migrate
-docker-compose exec web python3 manage.py collectstatic
+docker compose up --build --d
+docker compose exec web python3 manage.py migrate
+docker compose exec web python3 manage.py collectstatic
 ```
 
 Перейти по [адресу](http://localhost:28961/api/) и убедиться в работоспособности сервиса.
@@ -58,7 +58,7 @@ docker-compose exec web python3 manage.py collectstatic
 Для этого используется команда `fill_egrul`.
 
 ```bash
-docker-compose exec web python3 manage.py fill_egrul egrul_data/<path_to_dir_with_xml> -n <proc_num> [--update]
+docker compose exec web python3 manage.py fill_egrul egrul_data/<path_to_dir_with_xml> -n <proc_num> [--update]
 ```
 
 *egrul_data/<path_to_dir_with_xml>* - путь до директории с файлами XML; в текущем
@@ -72,7 +72,7 @@ egrul_data монтируется в /tmp/.
 Для демонстрации работы сервиса предусмотрена команда, которая создаст *N* вымышленных организаций
 
 ```bash
-docker-compose exec web python3 manage.py fill_test_data <N>
+docker compose exec web python3 manage.py fill_test_data <N>
 ```
 
 ### Особенности реализации полнотекстового поиска
