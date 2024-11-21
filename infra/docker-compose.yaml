@@ -1,4 +1,3 @@
-version: '3.4'
 services:
   db:
     build:
@@ -20,6 +19,7 @@ services:
     build:
       context: ../egrul
       dockerfile: Dockerfile
+      network: host
     restart: always
     volumes:
       - static_value:/app/static/
